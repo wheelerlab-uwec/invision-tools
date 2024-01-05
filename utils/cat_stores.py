@@ -30,7 +30,6 @@ def cat_stores(left, right, output, length, skip, annotate, resize, rescale):
             int(first_frame.shape[1]), int(first_frame.shape[0]))
         right_width = int(right.get_next_image()[0].shape[1])
         vid_shape = (int(length / skip), left_width + right_width, height)
-        # vid_array = np.zeros(vid_shape)
 
         merged_store = im.new_for_format('tif',
                                          mode='w',
@@ -38,7 +37,6 @@ def cat_stores(left, right, output, length, skip, annotate, resize, rescale):
                                          imgshape=vid_shape, imgdtype='uint16',
                                          chunksize=1000)
 
-        # concatenate together
         for i in range(0, length, skip):
             left_frame, (frame_number, frame_timestamp) = left.get_image(
                 frame_number=None, frame_index=i)
@@ -81,7 +79,7 @@ def cat_stores(left, right, output, length, skip, annotate, resize, rescale):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
-        description='Take two imgstores from tandem cameras and concatenate them.')
+        description='Concatenate two imgstores from tandem cameras.')
 
     # Add command line arguments here
     parser.add_argument('left', type=str,
