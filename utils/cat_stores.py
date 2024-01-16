@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--skip', type=int, default=1,
                         help='Specify the interval of frames to skip (for down-sampling long videos).')
     parser.add_argument('-a', '--annotate', action='store_true', default=False,
-                        help='Specify the interval of frames to skip (for down-sampling long videos).')
+                        help='Annotate each frame with the time point.')
     parser.add_argument('-r', '--resize', action='store_true', default=False,
                         help='Resize the concatenated output to 800x267.')
     parser.add_argument('--rescale', action='store_true', default=False,
