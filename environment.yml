@@ -20,6 +20,7 @@ dependencies:
   - gmp==6.3.0
   - libpng==1.6.39
   - libvpx==1.10.0
+  - matplotlib
   - openh264==1.8.0
   - openssl
   - readline==8.2
@@ -40,3 +41,4 @@ dependencies:
   - pytest==7.4.0
   - ipykernel
   - pillow
+  - trackpy

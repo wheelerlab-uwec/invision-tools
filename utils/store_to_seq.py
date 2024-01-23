@@ -2,7 +2,6 @@ import argparse
 import imgstore as im
 import time
 import shutil
-import argparse
 from pathlib import Path
 import os
 from tqdm import tqdm
