@@ -10,6 +10,8 @@ import pims
 from PIL import Image
 from pathlib import Path
 import os
+from skimage.filters import threshold_otsu, gaussian
+from skimage.exposure import rescale_intensity
 
 ########################################################################
 ####                                                                ####
@@ -50,12 +52,13 @@ def get_background(video, output, camera):
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
     im = im.convert("L")
-    im.save(f"{base}.png")
+    save_path = Path(base, f"{base}_background.png")
+    im.save(save_path)
 
     return max, test_frame
 
 
-def subtract_background(video, output, camera):
+def process_image(video, output, camera):
 
     # output base
     base = Path(output).stem
@@ -69,14 +72,18 @@ def subtract_background(video, output, camera):
     arr = np.zeros(
         (len(worm_vid), test_frame.shape[0], test_frame.shape[1]), np.uint8)
     for i in range(0, len(worm_vid)):
+        print(f"Processing frame {i}.")
         if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
         else:
             frame = rgb2gray(worm_vid[i][300:-300, :])
-        sub = frame - max
-        arr[i] = sub
+        sub = (frame - max).astype(np.int8)
+        rescale = rescale_intensity(sub, out_range=(0, 255))
+        inv = (255 - rescale).astype(np.uint8)
+        smooth = gaussian(inv, sigma=5, preserve_range=True)
+        arr[i] = smooth
         if i % 900 == 0:
-            im = Image.fromarray(sub)
+            im = Image.fromarray(smooth)
             im = im.convert("L")
             save_path = Path(base, f"{base}_{i}.png")
             im.save(save_path)
@@ -84,31 +91,9 @@ def subtract_background(video, output, camera):
     return arr
 
 
-# def track(video, output, camera):
-
-#     # read video
-#     worm_vid = pims.PyAVVideoReader(video)
-
-#     max, test_frame = get_background(video, output, camera)
-
-#     # store data in an HDF5 file
-
-#     with tp.PandasHDFStore(output) as s:
-#         for i in range(0, len(worm_vid)):
-#             if camera == 'left':
-#                 frame = rgb2gray(worm_vid[i][500:-100, 250:])
-#             else:
-#                 frame = rgb2gray(worm_vid[i][300:-300, :])
-#             sub = frame - max
-#             features = tp.locate(sub, 35, invert=True,
-#                                  maxsize=9, minmass=1000, topn=50)
-#             s.put(features)
-#             print(i)
-
-
 def track_batch(video, output, camera):
 
-    arr = subtract_background(video, output, camera)
+    arr = process_image(video, output, camera)
 
     with tp.PandasHDFStoreBig(output) as s:
         tp.batch(arr, 35, invert=True,
