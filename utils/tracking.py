@@ -23,10 +23,7 @@ def rgb2gray(rgb):
     return gray.astype(np.uint8)
 
 
-def track(video, output, camera):
-
-    # left = [500:-100, 250:]
-    # right = [300:300, :]
+def get_background(video, output, camera):
 
     # output base
     base = Path(output).stem
@@ -46,14 +43,43 @@ def track(video, output, camera):
     for i in range(0, 25):
         if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
-            first_bit[i] = frame
         else:
             frame = rgb2gray(worm_vid[i][300:-300, :])
-            first_bit[i] = frame
+        first_bit[i] = frame
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
     im = im.convert("L")
     im.save(f"{base}.png")
+
+    return max, test_frame
+
+
+def subtract_background(video, output, camera):
+
+    # read video
+    worm_vid = pims.PyAVVideoReader(video)
+
+    max, test_frame = get_background(video, output, camera)
+
+    arr = np.zeros(
+        (len(worm_vid), test_frame.shape[0], test_frame.shape[1]), np.uint8)
+    for i in range(0, len(worm_vid)):
+        if camera == 'left':
+            frame = rgb2gray(worm_vid[i][500:-100, 250:])
+        else:
+            frame = rgb2gray(worm_vid[i][300:-300, :])
+        sub = frame - max
+        arr[i] = sub
+        print(i)
+    return arr
+
+
+def track(video, output, camera):
+
+    # read video
+    worm_vid = pims.PyAVVideoReader(video)
+
+    max, test_frame = get_background(video, output, camera)
 
     # store data in an HDF5 file
 
@@ -68,45 +94,6 @@ def track(video, output, camera):
                                  maxsize=9, minmass=1000)
             s.put(features)
             print(i)
-
-
-def subtract_background(video, output, camera):
-
-    # output base
-    base = Path(output).stem
-
-    # read video
-    worm_vid = pims.PyAVVideoReader(video)
-
-    # np array slicing to remove pixels from top, bottom, and left side
-    if camera == 'left':
-        test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
-    else:
-        test_frame = rgb2gray(worm_vid[0][300:-300, :])
-
-    # grab the first 25 frames and get the maximum projection
-    first_bit = np.zeros((25, test_frame.shape[0], test_frame.shape[1]), np.uint8)
-    for i in range(0, 25):
-        if camera == 'left':
-            frame = rgb2gray(worm_vid[i][500:-100, 250:])
-        else:
-            frame = rgb2gray(worm_vid[i][300:-300, :])
-        first_bit[i] = frame
-    max = np.amax(first_bit, axis=0)
-    im = Image.fromarray(max)
-    im = im.convert("L")
-    im.save(f"{base}.png")
-
-    arr = np.zeros((len(worm_vid), test_frame.shape[0], test_frame.shape[1]), np.uint8)
-    for i in range(0, len(worm_vid)):
-        if camera == 'left':
-            frame = rgb2gray(worm_vid[i][500:-100, 250:])
-        else:
-            frame = rgb2gray(worm_vid[i][300:-300, :])
-        sub = frame - max
-        arr[i] = sub
-        print(i)
-    return arr
 
 
 def track_batch(video, output, camera):
