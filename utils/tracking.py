@@ -53,7 +53,7 @@ def track(video, output, camera):
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
     im = im.convert("L")
-    im.save("f{base}.png")
+    im.save(f"{base}.png")
 
     # store data in an HDF5 file
 
@@ -92,7 +92,7 @@ def subtract_background(video, camera):
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
     im = im.convert("L")
-    im.save("f{base}.png")
+    im.save(f"{base}.png")
 
     arr = np.zeros((len(worm_vid), test_frame.shape[0], test_frame.shape[1]), np.uint8)
     for i in range(0, len(worm_vid)):
