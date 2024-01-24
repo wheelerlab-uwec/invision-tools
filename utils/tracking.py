@@ -9,6 +9,7 @@ import numba
 import pims
 from PIL import Image
 from pathlib import Path
+import os
 
 ########################################################################
 ####                                                                ####
@@ -56,6 +57,10 @@ def get_background(video, output, camera):
 
 def subtract_background(video, output, camera):
 
+    # output base
+    base = Path(output).stem
+    os.mkdir(base)
+
     # read video
     worm_vid = pims.PyAVVideoReader(video)
 
@@ -70,30 +75,35 @@ def subtract_background(video, output, camera):
             frame = rgb2gray(worm_vid[i][300:-300, :])
         sub = frame - max
         arr[i] = sub
-        print(i)
+        if i % 900 == 0:
+            im = Image.fromarray(sub)
+            im = im.convert("L")
+            save_path = Path(base, f"{base}_{i}.png")
+            im.save(save_path)
+
     return arr
 
 
-def track(video, output, camera):
+# def track(video, output, camera):
 
-    # read video
-    worm_vid = pims.PyAVVideoReader(video)
+#     # read video
+#     worm_vid = pims.PyAVVideoReader(video)
 
-    max, test_frame = get_background(video, output, camera)
+#     max, test_frame = get_background(video, output, camera)
 
-    # store data in an HDF5 file
+#     # store data in an HDF5 file
 
-    with tp.PandasHDFStore(output) as s:
-        for i in range(0, len(worm_vid)):
-            if camera == 'left':
-                frame = rgb2gray(worm_vid[i][500:-100, 250:])
-            else:
-                frame = rgb2gray(worm_vid[i][300:-300, :])
-            sub = frame - max
-            features = tp.locate(sub, 35, invert=True,
-                                 maxsize=9, minmass=1000)
-            s.put(features)
-            print(i)
+#     with tp.PandasHDFStore(output) as s:
+#         for i in range(0, len(worm_vid)):
+#             if camera == 'left':
+#                 frame = rgb2gray(worm_vid[i][500:-100, 250:])
+#             else:
+#                 frame = rgb2gray(worm_vid[i][300:-300, :])
+#             sub = frame - max
+#             features = tp.locate(sub, 35, invert=True,
+#                                  maxsize=9, minmass=1000, topn=50)
+#             s.put(features)
+#             print(i)
 
 
 def track_batch(video, output, camera):
@@ -102,7 +112,8 @@ def track_batch(video, output, camera):
 
     with tp.PandasHDFStoreBig(output) as s:
         tp.batch(arr, 35, invert=True,
-                 maxsize=9, minmass=1000, output=s)
+                 maxsize=9, minmass=1000, topn=50,
+                 output=s)
 
 
 if __name__ == '__main__':
@@ -116,15 +127,8 @@ if __name__ == '__main__':
                         help='Path to the output.')
     parser.add_argument('camera', type=str,
                         help='"left" or "right" camera.')
-    parser.add_argument('--batch', action='store_true', default=False,
-                        help='Run in batch mode.')
     args = parser.parse_args()
 
-    if args.batch:
-        track_batch(args.video,
-                    args.output,
-                    args.camera)
-    else:
-        track(args.video,
-              args.output,
-              args.camera)
+    track_batch(args.video,
+                args.output,
+                args.camera)
