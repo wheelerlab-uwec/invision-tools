@@ -7,6 +7,8 @@ from pandas import DataFrame, Series
 import trackpy as tp
 import numba
 import pims
+from PIL import Image
+from pathlib import Path
 
 ########################################################################
 ####                                                                ####
@@ -21,26 +23,44 @@ def rgb2gray(rgb):
     return gray.astype(np.uint8)
 
 
-def track(video, output):
+def track(video, output, camera):
+
+    # left = [500:-100, 250:]
+    # right = [300:300, :]
+
+    # output base
+    base = Path(output).stem
 
     # read video
     worm_vid = pims.PyAVVideoReader(video)
 
     # np array slicing to remove pixels from top, bottom, and left side
-    test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
+    if camera is 'left':
+        test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
+    else:
+        test_frame = rgb2gray(worm_vid[0][300:-300, :])
 
     # grab the first 25 frames and get the maximum projection
     first_bit = np.zeros((25, test_frame.shape[0], test_frame.shape[1]))
     for i in range(0, 25):
-        frame = rgb2gray(worm_vid[i][500:-100, 250:])
-        first_bit[i] = frame
+        if camera is 'left':
+            frame = rgb2gray(worm_vid[i][500:-100, 250:])
+            first_bit[i] = frame
+        else:
+            frame = rgb2gray(worm_vid[i][300:-300, :])
+            first_bit[i] = frame
     max = np.amax(first_bit, axis=0)
+    im = Image.fromarray(max)
+    im.save("f{base}.png")
 
     # store data in an HDF5 file
 
     with tp.PandasHDFStore(output) as s:
         for i in range(0, len(worm_vid)):
-            frame = rgb2gray(worm_vid[i][500:-100, 250:])
+            if camera is 'left':
+                frame = rgb2gray(worm_vid[i][500:-100, 250:])
+            else:
+                frame = rgb2gray(worm_vid[i][300:-300, :])
             sub = frame - max
             features = tp.locate(sub, 35, invert=True,
                                  maxsize=9, minmass=1000)
@@ -48,24 +68,35 @@ def track(video, output):
             print(i)
 
 
-def subtract_background(video):
+def subtract_background(video, camera):
 
     # read video
     worm_vid = pims.PyAVVideoReader(video)
 
     # np array slicing to remove pixels from top, bottom, and left side
-    test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
+    if camera is 'left':
+        test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
+    else:
+        test_frame = rgb2gray(worm_vid[0][300:-300, :])
 
     # grab the first 25 frames and get the maximum projection
     first_bit = np.zeros((25, test_frame.shape[0], test_frame.shape[1]))
     for i in range(0, 25):
-        frame = rgb2gray(worm_vid[i][500:-100, 250:])
+        if camera is 'left':
+            frame = rgb2gray(worm_vid[i][500:-100, 250:])
+        else:
+            frame = rgb2gray(worm_vid[i][300:-300, :])
         first_bit[i] = frame
     max = np.amax(first_bit, axis=0)
+    im = Image.fromarray(max)
+    im.save("f{base}.png")
 
     arr = np.zeros((len(worm_vid), test_frame.shape[0], test_frame.shape[1]))
     for i in range(0, len(worm_vid)):
-        frame = rgb2gray(worm_vid[i][500:-100, 250:])
+        if camera is 'left':
+            frame = rgb2gray(worm_vid[i][500:-100, 250:])
+        else:
+            frame = rgb2gray(worm_vid[i][300:-300, :])
         sub = frame - max
         arr[i] = sub
         print(i)
@@ -90,13 +121,17 @@ if __name__ == '__main__':
                         help='Path to the video.')
     parser.add_argument('output', type=str,
                         help='Path to the output.')
+    parser.add_argument('camera', type=str,
+                        help='"left" or "right" camera.')
     parser.add_argument('--batch', action='store_true', default=False,
                         help='Run in batch mode.')
     args = parser.parse_args()
 
     if args.batch:
         track_batch(args.video,
-                    args.output)
+                    args.output,
+                    args.camera)
     else:
         track(args.video,
-              args.output)
+              args.output,
+              args.camera)
