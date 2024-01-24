@@ -72,6 +72,9 @@ def track(video, output, camera):
 
 def subtract_background(video, camera):
 
+    # output base
+    base = Path(output).stem
+
     # read video
     worm_vid = pims.PyAVVideoReader(video)
 
