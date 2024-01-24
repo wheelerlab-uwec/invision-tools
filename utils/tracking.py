@@ -35,7 +35,7 @@ def track(video, output, camera):
     worm_vid = pims.PyAVVideoReader(video)
 
     # np array slicing to remove pixels from top, bottom, and left side
-    if camera is 'left':
+    if camera == 'left':
         test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
     else:
         test_frame = rgb2gray(worm_vid[0][300:-300, :])
@@ -44,7 +44,7 @@ def track(video, output, camera):
     first_bit = np.zeros(
         (25, test_frame.shape[0], test_frame.shape[1]), np.uint8)
     for i in range(0, 25):
-        if camera is 'left':
+        if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
             first_bit[i] = frame
         else:
@@ -52,13 +52,14 @@ def track(video, output, camera):
             first_bit[i] = frame
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
+    im = im.convert("L")
     im.save("f{base}.png")
 
     # store data in an HDF5 file
 
     with tp.PandasHDFStore(output) as s:
         for i in range(0, len(worm_vid)):
-            if camera is 'left':
+            if camera == 'left':
                 frame = rgb2gray(worm_vid[i][500:-100, 250:])
             else:
                 frame = rgb2gray(worm_vid[i][300:-300, :])
@@ -75,7 +76,7 @@ def subtract_background(video, camera):
     worm_vid = pims.PyAVVideoReader(video)
 
     # np array slicing to remove pixels from top, bottom, and left side
-    if camera is 'left':
+    if camera == 'left':
         test_frame = rgb2gray(worm_vid[0][500:-100, 250:])
     else:
         test_frame = rgb2gray(worm_vid[0][300:-300, :])
@@ -83,18 +84,19 @@ def subtract_background(video, camera):
     # grab the first 25 frames and get the maximum projection
     first_bit = np.zeros((25, test_frame.shape[0], test_frame.shape[1]))
     for i in range(0, 25):
-        if camera is 'left':
+        if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
         else:
             frame = rgb2gray(worm_vid[i][300:-300, :])
         first_bit[i] = frame
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
+    im = im.convert("L")
     im.save("f{base}.png")
 
     arr = np.zeros((len(worm_vid), test_frame.shape[0], test_frame.shape[1]))
     for i in range(0, len(worm_vid)):
-        if camera is 'left':
+        if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
         else:
             frame = rgb2gray(worm_vid[i][300:-300, :])
