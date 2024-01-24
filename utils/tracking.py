@@ -82,7 +82,7 @@ def subtract_background(video, camera):
         test_frame = rgb2gray(worm_vid[0][300:-300, :])
 
     # grab the first 25 frames and get the maximum projection
-    first_bit = np.zeros((25, test_frame.shape[0], test_frame.shape[1]))
+    first_bit = np.zeros((25, test_frame.shape[0], test_frame.shape[1]), np.uint8)
     for i in range(0, 25):
         if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
@@ -94,7 +94,7 @@ def subtract_background(video, camera):
     im = im.convert("L")
     im.save("f{base}.png")
 
-    arr = np.zeros((len(worm_vid), test_frame.shape[0], test_frame.shape[1]))
+    arr = np.zeros((len(worm_vid), test_frame.shape[0], test_frame.shape[1]), np.uint8)
     for i in range(0, len(worm_vid)):
         if camera == 'left':
             frame = rgb2gray(worm_vid[i][500:-100, 250:])
