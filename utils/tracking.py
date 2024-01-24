@@ -70,7 +70,7 @@ def track(video, output, camera):
             print(i)
 
 
-def subtract_background(video, camera):
+def subtract_background(video, output, camera):
 
     # output base
     base = Path(output).stem
@@ -111,7 +111,7 @@ def subtract_background(video, camera):
 
 def track_batch(video, output, camera):
 
-    arr = subtract_background(video, camera)
+    arr = subtract_background(video, output, camera)
 
     with tp.PandasHDFStoreBig(output) as s:
         tp.batch(arr, 35, invert=True,
