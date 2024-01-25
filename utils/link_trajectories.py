@@ -12,7 +12,7 @@ def plot_tracks(hd5):
     base = Path(hd5).stem
 
     with tp.PandasHDFStore(hd5) as s:
-        for linked in tp.link_df_iter(s, 30, memory=20):
+        for linked in tp.link_df_iter(s, 10, memory=10):
             s.put(linked)
         trajectories = pd.concat(iter(s))
 

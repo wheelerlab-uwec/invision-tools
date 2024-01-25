@@ -69,19 +69,19 @@ def track_batch(video, output, camera):
     base = Path(output).stem
     os.mkdir(output)
     worm_vid = pims.PyAVVideoReader(video)
-    worm_vid = worm_vid[0:50]
+   # worm_vid = worm_vid[0:50]
 
     background = get_background(worm_vid, output)
     background = crop(background, camera)
 
     vid_arr = np.zeros(
-        (len(worm_vid), background.shape[0], background.shape[1]))
+        (len(worm_vid), background.shape[0], background.shape[1]), np.uint8)
     i = 0
     for frame in worm_vid:
         print(f'Processing frame {i}.')
         arr = process_frame(frame, camera, background)
         vid_arr[i] = arr
-        if i % 1 == 0:
+        if i % 900 == 0:
             im = Image.fromarray(arr)
             im = im.convert("L")
             save_path = Path(output, f"{base}_{i}.png")
