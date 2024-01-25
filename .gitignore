@@ -1,4 +1,7 @@
 *.h5
+*.mp4
+temp.*
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
