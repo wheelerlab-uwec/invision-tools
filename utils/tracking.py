@@ -5,13 +5,13 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
 import trackpy as tp
-import numba
-import pims
 from PIL import Image
 from pathlib import Path
 import os
-from skimage.filters import threshold_otsu, gaussian
+from skimage.filters import gaussian
 from skimage.exposure import rescale_intensity
+import cv2
+import decord
 
 ########################################################################
 ####                                                                ####
@@ -21,18 +21,16 @@ from skimage.exposure import rescale_intensity
 
 
 # convert RGB image to greyscale uint8
-@pims.pipeline
-def rgb2gray(rgb):
-    gray = np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+def rgb2gray(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     return gray.astype(np.uint8)
 
 
-@pims.pipeline
-def crop(video, camera):
+def crop(frame, camera):
     if camera == 'left':
-        cropped = pims.process.crop(video, ((300, 100), (250, 0)))
+        cropped = frame[100:300, 0:250]
     else:
-        cropped = pims.process.crop(video, ((200, 200), (0, 0)))
+        cropped = frame[0:200, 0:200]
     return cropped
 
 
@@ -44,7 +42,8 @@ def get_background(video, output):
     first_bit = np.zeros(
         (25, first_frame.shape[0], first_frame.shape[1]), np.uint8)
     for i in range(0, 25):
-        first_bit[i] = rgb2gray(video[i])
+        frame = video[i].asnumpy()
+        first_bit[i] = rgb2gray(frame)
     max = np.amax(first_bit, axis=0)
     im = Image.fromarray(max)
     im = im.convert("L")
@@ -68,8 +67,7 @@ def process_frame(frame, camera, background):
 def track_batch(video, output, camera):
     base = Path(output).stem
     os.mkdir(output)
-    worm_vid = pims.PyAVVideoReader(video)
-   # worm_vid = worm_vid[0:50]
+    worm_vid = decord.VideoReader(video, ctx=decord.cpu(0))
 
     background = get_background(worm_vid, output)
     background = crop(background, camera)
@@ -77,8 +75,9 @@ def track_batch(video, output, camera):
     vid_arr = np.zeros(
         (len(worm_vid), background.shape[0], background.shape[1]), np.uint8)
     i = 0
-    for frame in worm_vid:
+    for i in range(len(worm_vid)):
         print(f'Processing frame {i}.')
+        frame = worm_vid[i].asnumpy()
         arr = process_frame(frame, camera, background)
         vid_arr[i] = arr
         if i % 900 == 0:
