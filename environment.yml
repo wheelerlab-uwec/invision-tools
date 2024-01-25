@@ -42,3 +42,4 @@ dependencies:
   - ipykernel
   - pillow
   - trackpy
+  - av
