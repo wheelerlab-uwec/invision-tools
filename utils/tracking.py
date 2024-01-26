@@ -20,35 +20,24 @@ import decord
 ########################################################################
 
 
-# convert RGB image to greyscale uint8
 def rgb2gray(frame):
-    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    return gray.astype(np.uint8)
+    gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY).astype(np.uint8)
+    return gray
 
 
-# def crop(frame, camera):
-#     if camera == 'left':
-#         cropped = frame[100:300, 0:250]
-#     else:
-#         cropped = frame[0:200, 0:200]
-#     return cropped
+def get_background(video, output, i):
 
-
-def get_background(video, output):
-
-    base = Path(output).stem
-    first_frame = video[0]
+    first_frame = video[i]
 
     first_bit = np.zeros(
-        (25, first_frame.shape[0], first_frame.shape[1]), np.uint8)
-    for i in range(0, 25):
-        frame = video[i].asnumpy()
-        first_bit[i] = rgb2gray(frame)
+        (50, first_frame.shape[0], first_frame.shape[1]), np.uint8)
+    for k in range(i, i + 50):
+        frame = video[k].asnumpy()
+        first_bit[k - 50] = rgb2gray(frame)
+        del frame
     max = np.amax(first_bit, axis=0)
-    im = Image.fromarray(max)
-    im = im.convert("L")
-    save_path = Path(output, f"{base}_background.png")
-    im.save(save_path)
+    save_path = Path(output, f"background_{i}.png")
+    cv2.imwrite(str(save_path), max)
 
     return max
 
@@ -56,7 +45,8 @@ def get_background(video, output):
 def process_frame(frame, background):
     gray = rgb2gray(frame)
     sub = (gray - background).astype(np.int8)
-    rescale = rescale_intensity(sub, out_range=(0, 255))
+    rescale = rescale_intensity(sub,
+                                out_range='dtype')
     inv = (255 - rescale).astype(np.uint8)
     smooth = gaussian(inv, sigma=5, preserve_range=True)
 
@@ -68,7 +58,8 @@ def track_batch(video, output):
     os.mkdir(output)
     worm_vid = decord.VideoReader(video, ctx=decord.cpu(0))
 
-    background = get_background(worm_vid, output)
+    # get an initial background
+    background = get_background(worm_vid, output, 0)
 
     vid_arr = np.zeros(
         (len(worm_vid), background.shape[0], background.shape[1]), np.uint8)
@@ -76,13 +67,14 @@ def track_batch(video, output):
     for i in range(len(worm_vid)):
         print(f'Processing frame {i}.')
         frame = worm_vid[i].asnumpy()
+        # refresh the background every 50 frames
+        if i % 50 == 0:
+            background = get_background(worm_vid, output, i)
         arr = process_frame(frame, background)
         vid_arr[i] = arr
-        if i % 450 == 0:
-            im = Image.fromarray(arr)
-            im = im.convert("L")
+        if i % 225 == 0:
             save_path = Path(output, f"{base}_{i}.png")
-            im.save(save_path)
+            cv2.imwrite(str(save_path), arr)
         i += 1
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hd5")) as s:
@@ -99,11 +91,8 @@ if __name__ == '__main__':
                         help='Path to the video.')
     parser.add_argument('output', type=str,
                         help='Path to the output directory.')
-    # parser.add_argument('camera', type=str,
-    #                     help='"left" or "right" camera.')
     args = parser.parse_args()
 
     track_batch(args.video,
                 args.output
-                # args.camera
                 )
