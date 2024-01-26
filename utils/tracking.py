@@ -78,7 +78,7 @@ def track_batch(video, output):
         frame = worm_vid[i].asnumpy()
         arr = process_frame(frame, background)
         vid_arr[i] = arr
-        if i % 900 == 0:
+        if i % 450 == 0:
             im = Image.fromarray(arr)
             im = im.convert("L")
             save_path = Path(output, f"{base}_{i}.png")
