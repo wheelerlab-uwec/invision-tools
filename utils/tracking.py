@@ -55,8 +55,8 @@ def get_background(video, output):
 
 def process_frame(frame, camera, background):
     gray = rgb2gray(frame)
-    cropped = crop(gray, camera)
-    sub = (cropped - background).astype(np.int8)
+    # cropped = crop(gray, camera)
+    sub = (gray - background).astype(np.int8)
     rescale = rescale_intensity(sub, out_range=(0, 255))
     inv = (255 - rescale).astype(np.uint8)
     smooth = gaussian(inv, sigma=5, preserve_range=True)
@@ -70,7 +70,7 @@ def track_batch(video, output, camera):
     worm_vid = decord.VideoReader(video, ctx=decord.cpu(0))
 
     background = get_background(worm_vid, output)
-    background = crop(background, camera)
+    # background = crop(background, camera)
 
     vid_arr = np.zeros(
         (len(worm_vid), background.shape[0], background.shape[1]), np.uint8)
