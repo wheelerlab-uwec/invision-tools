@@ -26,12 +26,12 @@ def rgb2gray(frame):
     return gray.astype(np.uint8)
 
 
-def crop(frame, camera):
-    if camera == 'left':
-        cropped = frame[100:300, 0:250]
-    else:
-        cropped = frame[0:200, 0:200]
-    return cropped
+# def crop(frame, camera):
+#     if camera == 'left':
+#         cropped = frame[100:300, 0:250]
+#     else:
+#         cropped = frame[0:200, 0:200]
+#     return cropped
 
 
 def get_background(video, output):
@@ -53,9 +53,8 @@ def get_background(video, output):
     return max
 
 
-def process_frame(frame, camera, background):
+def process_frame(frame, background):
     gray = rgb2gray(frame)
-    # cropped = crop(gray, camera)
     sub = (gray - background).astype(np.int8)
     rescale = rescale_intensity(sub, out_range=(0, 255))
     inv = (255 - rescale).astype(np.uint8)
@@ -64,13 +63,12 @@ def process_frame(frame, camera, background):
     return smooth
 
 
-def track_batch(video, output, camera):
+def track_batch(video, output):
     base = Path(output).stem
     os.mkdir(output)
     worm_vid = decord.VideoReader(video, ctx=decord.cpu(0))
 
     background = get_background(worm_vid, output)
-    # background = crop(background, camera)
 
     vid_arr = np.zeros(
         (len(worm_vid), background.shape[0], background.shape[1]), np.uint8)
@@ -78,7 +76,7 @@ def track_batch(video, output, camera):
     for i in range(len(worm_vid)):
         print(f'Processing frame {i}.')
         frame = worm_vid[i].asnumpy()
-        arr = process_frame(frame, camera, background)
+        arr = process_frame(frame, background)
         vid_arr[i] = arr
         if i % 900 == 0:
             im = Image.fromarray(arr)
@@ -101,10 +99,11 @@ if __name__ == '__main__':
                         help='Path to the video.')
     parser.add_argument('output', type=str,
                         help='Path to the output directory.')
-    parser.add_argument('camera', type=str,
-                        help='"left" or "right" camera.')
+    # parser.add_argument('camera', type=str,
+    #                     help='"left" or "right" camera.')
     args = parser.parse_args()
 
     track_batch(args.video,
-                args.output,
-                args.camera)
+                args.output
+                # args.camera
+                )
