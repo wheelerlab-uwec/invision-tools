@@ -31,9 +31,11 @@ def get_background(video, output, i):
 
     first_bit = np.zeros(
         (50, first_frame.shape[0], first_frame.shape[1]), np.uint8)
+    j = 0
     for k in range(i, i + 50):
         frame = video[k].asnumpy()
-        first_bit[k - 50] = rgb2gray(frame)
+        first_bit[j] = rgb2gray(frame)
+        j += 1
         del frame
     max = np.amax(first_bit, axis=0)
     save_path = Path(output, f"background_{i}.png")
