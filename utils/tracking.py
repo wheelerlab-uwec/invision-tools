@@ -62,7 +62,7 @@ def track_batch(video, output):
     vid_arr = np.empty((1, shape[0], shape[1]), np.uint8)
 
     # load 50 frames into memory
-    chunk_size = 100
+    chunk_size = 50
     chunk = np.zeros((chunk_size, shape[0], shape[1]), np.uint8)
     for c in range(0, int(len(worm_vid) / chunk_size)):
         print(
