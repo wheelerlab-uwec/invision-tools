@@ -45,7 +45,7 @@ def process_chunk(chunk, output):
         frame = chunk[i]
         arr = process_frame(frame, background)
         chunk[i] = arr
-        if i == 25:
+        if i == 50:
             save_path = Path(output, f'{i}.png')
             cv2.imwrite(str(save_path), arr)
 
@@ -62,7 +62,7 @@ def track_batch(video, output):
     vid_arr = np.empty((1, shape[0], shape[1]), np.uint8)
 
     # load 50 frames into memory
-    chunk_size = 50
+    chunk_size = 100
     chunk = np.zeros((chunk_size, shape[0], shape[1]), np.uint8)
     for c in range(0, int(len(worm_vid) / chunk_size)):
         print(
