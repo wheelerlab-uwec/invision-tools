@@ -66,7 +66,7 @@ def track_batch(video, output):
         print(f'Processing frame {i}')
         arr = process_frame(frame, background)
         worm_arr[i] = arr
-        if i % 5 == 0:
+        if i % 450 == 0:
             save_path = Path(output, f"{base}_{i}.png")
             cv2.imwrite(str(save_path), arr)
         i += 1
