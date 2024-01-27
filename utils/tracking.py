@@ -34,7 +34,14 @@ def process_frame(frame, background):
     return smooth
 
 
-def track_batch(video, output):
+def crop(frame, l, r, t, b):
+
+    cropped = frame[t:-b, l:-r]
+
+    return cropped
+
+
+def track_batch(video, output, left, right, top, bottom):
     base = Path(output).stem
     os.mkdir(output)
     worm_vid = cv2.VideoCapture(video)
@@ -57,6 +64,7 @@ def track_batch(video, output):
         if not ret:
             break
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        frame = crop(frame, left, right, top, bottom)
         worm_arr[i] = frame
 
     i = 0
@@ -86,11 +94,20 @@ if __name__ == '__main__':
                         help='Path to the video.')
     parser.add_argument('output', type=str,
                         help='Path to the output directory.')
-    # parser.add_argument('camera', type=str,
-    #                     help='"left" or "right" camera.')
+    parser.add_argument('-l', '--left', type=int,
+                        help='Number of cols to remove from the left.')
+    parser.add_argument('-r', '--right', type=int,
+                        help='Number of cols to remove from the right.')
+    parser.add_argument('-t', '--top', type=int,
+                        help='Number of cols to remove from the top.')
+    parser.add_argument('-b', '--bottom', type=int,
+                        help='Number of cols to remove from the bottom.')
     args = parser.parse_args()
 
     track_batch(args.video,
-                args.output
-                # args.camera
+                args.output,
+                args.left,
+                args.right,
+                args.top,
+                args.bottom
                 )
