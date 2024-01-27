@@ -51,19 +51,20 @@ def track_batch(video, output):
         (num_frames, frame_shape[0], frame_shape[1]), np.uint8)
     for i in range(num_frames):
 
-        print(f'Loading frame {i} to memory.')
+        if i % 50 == 0:
+            print(f'Loading frame {i} to memory.')
         ret, frame = worm_vid.read()
         if not ret:
             break
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         worm_arr[i] = frame
 
-    print('Calculating background.')
-    background = np.amax(worm_arr, axis=0)
-
     i = 0
     for frame in worm_arr:
-        print(f'Processing frame {i}')
+        if i % 50 == 0:
+            print(f'Processing frame {i}')
+            print(f'Regenerating background using frames {i} to {i+50}.')
+            background = np.amax(worm_arr[i:i+50, :, :])
         arr = process_frame(frame, background)
         worm_arr[i] = arr
         if i % 450 == 0:
@@ -72,9 +73,8 @@ def track_batch(video, output):
         i += 1
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hd5")) as s:
-        for image in worm_arr:
-            tp.batch(worm_arr, 19, minmass=1000,
-                     output=s)
+        tp.batch(worm_arr, 19, minmass=1000,
+                 output=s)
 
 
 if __name__ == '__main__':
