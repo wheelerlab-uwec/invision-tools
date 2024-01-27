@@ -48,7 +48,8 @@ def track_batch(video, output, left, right, top, bottom):
     num_frames = int(worm_vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     ret, frame = worm_vid.read()
-    if ret:
+    if ret == True:
+        frame = crop(frame, left, right, top, bottom)
         frame_shape = frame.shape
 
     # Reset the video capture to the first frame
