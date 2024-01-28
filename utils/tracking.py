@@ -8,7 +8,7 @@ import trackpy as tp
 from pathlib import Path
 import os
 from skimage.filters import gaussian
-from skimage.exposure import rescale_intensity
+from skimage.exposure import rescale_intensity, adjust_gamma
 import cv2
 
 ########################################################################
@@ -26,12 +26,12 @@ def rgb2gray(frame):
 
 def process_frame(frame, background):
     # gray = rgb2gray(frame)
-    sub = (frame - background).astype(np.int8)
-    rescale = rescale_intensity(sub, out_range=(0, 255))
-    inv = (255 - rescale).astype(np.uint8)
-    smooth = gaussian(inv, sigma=5, preserve_range=True)
+    sub = np.absolute((frame - background).astype(np.int8))
+    # rescale = rescale_intensity(sub, out_range=(0, 255))
+    # inv = (255 - rescale).astype(np.uint8)
+    # smooth = gaussian(sub, sigma=5, preserve_range=True)
 
-    return smooth
+    return sub
 
 
 def crop(frame, l, r, t, b):
@@ -41,15 +41,14 @@ def crop(frame, l, r, t, b):
     return cropped
 
 
-def track_batch(video, output, left, right, top, bottom):
+def track_batch(video, output):
     base = Path(output).stem
-    os.mkdir(output)
+    os.makedirs(output, exist_ok=True)
     worm_vid = cv2.VideoCapture(video)
     num_frames = int(worm_vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     ret, frame = worm_vid.read()
     if ret == True:
-        frame = crop(frame, left, right, top, bottom)
         frame_shape = frame.shape
 
     # Reset the video capture to the first frame
@@ -65,7 +64,6 @@ def track_batch(video, output, left, right, top, bottom):
         if not ret:
             break
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        frame = crop(frame, left, right, top, bottom)
         worm_arr[i] = frame
 
     i = 0
@@ -73,7 +71,9 @@ def track_batch(video, output, left, right, top, bottom):
         if i % 50 == 0:
             print(f'Processing frame {i}')
             print(f'Regenerating background using frames {i} to {i+50}.')
-            background = np.amax(worm_arr[i:i+50, :, :])
+            background = np.amax(worm_arr[i:i+50, :, :], axis=0)
+            save_path = Path(output, "background.png")
+            cv2.imwrite(str(save_path), background)
         arr = process_frame(frame, background)
         worm_arr[i] = arr
         if i % 450 == 0:
@@ -82,7 +82,7 @@ def track_batch(video, output, left, right, top, bottom):
         i += 1
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hd5")) as s:
-        tp.batch(worm_arr, 19, minmass=1000,
+        tp.batch(worm_arr, 35, topn=50,
                  output=s)
 
 
@@ -95,20 +95,16 @@ if __name__ == '__main__':
                         help='Path to the video.')
     parser.add_argument('output', type=str,
                         help='Path to the output directory.')
-    parser.add_argument('-l', '--left', type=int,
-                        help='Number of cols to remove from the left.')
-    parser.add_argument('-r', '--right', type=int,
-                        help='Number of cols to remove from the right.')
-    parser.add_argument('-t', '--top', type=int,
-                        help='Number of cols to remove from the top.')
-    parser.add_argument('-b', '--bottom', type=int,
-                        help='Number of cols to remove from the bottom.')
+    # parser.add_argument('-l', '--left', type=int,
+    #                     help='Number of cols to remove from the left.')
+    # parser.add_argument('-r', '--right', type=int,
+    #                     help='Number of cols to remove from the right.')
+    # parser.add_argument('-t', '--top', type=int,
+    #                     help='Number of cols to remove from the top.')
+    # parser.add_argument('-b', '--bottom', type=int,
+    #                     help='Number of cols to remove from the bottom.')
     args = parser.parse_args()
 
     track_batch(args.video,
-                args.output,
-                args.left,
-                args.right,
-                args.top,
-                args.bottom
+                args.output
                 )
