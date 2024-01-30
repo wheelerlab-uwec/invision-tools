@@ -8,33 +8,32 @@ from pathlib import Path
 import argparse
 import gzip
 import pickle
+import glob
 
 
-def plot_tracks(hd5s):
+def merge_data(hd5s, input):
 
     all_data = []
 
+    sorted = hd5s.sort()
+
     i = 0
-    for file in hd5s:
+    for file, i in zip(hd5s, range(len(hd5s))):
         with tp.PandasHDFStore(file, mode='r') as hdf5:
             print(f'Getting data from {Path(file).stem}')
+            all_results = hdf5.dump()
             if i == 0:
-                all_results = hdf5.dump()
-                zero_records = int(len(all_results['frame']))
-                print(f'{zero_records} rows in {Path(file).stem}')
-                all_data.append(all_results)
+                zero_records = int(all_results['frame'].max())
+                print(f'{zero_records} frames in {Path(file).stem}')
             elif i == 1:
-                all_results = hdf5.dump()
+                one_records = int(all_results['frame'].max())
                 all_results['frame'] += (zero_records + 1)
-                one_records = int(len(all_results['frame']))
-                print(f'{one_records} rows in {Path(file).stem}')
-                all_data.append(all_results)
+                print(f'{one_records} frames in {Path(file).stem}')
             elif i == 2:
-                all_results = hdf5.dump()
+                two_records = int(all_results['frame'].max())
                 all_results['frame'] += (zero_records + one_records + 1)
-                two_records = int(len(all_results['frame']))
-                print(f'{two_records} rows in {Path(file).stem}')
-                all_data.append(all_results)
+                print(f'{two_records} frames in {Path(file).stem}')
+            all_data.append(all_results)
             i += 1
 
     all_data = pd.concat(all_data)
@@ -45,29 +44,58 @@ def plot_tracks(hd5s):
         all_data = all_data.drop(columns=['particle'])
 
     parent = Path(hd5s[0]).parent
-    pickle_path = Path(parent, Path(hd5s[0]).stem + '.pkl.gz')
+    pickle_path = Path(input, Path(input).stem + '_tracks.pkl.gz')
     with gzip.open(pickle_path, 'wb') as f:
         print('Writing pickle file.')
         pickle.dump(all_data, f)
 
+    return all_data
+
+
+def generate_tracks(df, input):
+
     print('Linking particles.')
-    t = tp.link(all_data, 50, memory=100)
+    t = tp.link(df, 50, memory=100)
+    pickle_path = Path(input, Path(input).stem + '_tracks.pkl.gz')
+    with gzip.open(pickle_path, 'wb') as f:
+        print('Writing pickle file.')
+        pickle.dump(t, f)
     print('Filtering stubs.')
     t1 = tp.filter_stubs(t, 200)
-    plt.figure()
-    print('Plotting trajectories.')
-    ax = tp.plot_traj(t1)
 
-    save_path = Path(parent, Path(hd5s[0]).stem + '.pdf')
-    plt.savefig(save_path)
+    return t1
+
+
+def plot_tracks(tracks, input):
+
+    print('Plotting trajectories.')
+    save_path = Path(input, Path(input).stem + '.pdf')
+    fig = plt.figure()
+    ax = plt.gca()
+    tp.plot_traj(tracks, ax=ax)
+    fig.savefig(save_path)
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
         description='Track objects in an InVision video.')
-    parser.add_argument('hd5s', nargs='+',
-                        type=str, help='List of strings')
+    parser.add_argument('input',
+                        type=str, help='Path to input directory containing .pkl.gz or .hd5')
+    parser.add_argument('--pickle', action='store_true')
+    parser.add_argument('--hdf5', action='store_true')
+
     args = parser.parse_args()
 
-    plot_tracks(args.hd5s)
+    if args.pickle:
+        pkl_file = glob.glob(f'{args.input}/*.pkl.gz')
+        df = pd.read_pickle(pkl_file[0])
+
+        tracks = generate_tracks(df, args.input)
+        plot_tracks(tracks, args.input)
+
+    elif args.hdf5:
+        hdf5_files = glob.glob(f'{args.input}/*.hd5')
+        merged = merge_data(sorted(hdf5_files), args.input)
+        tracks = generate_tracks(merged, args.input)
+        plot_tracks(tracks, args.input)
