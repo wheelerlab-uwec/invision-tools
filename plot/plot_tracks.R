@@ -1,55 +1,128 @@
-library(tidyverse)
+library(ggplot)
+library(dplyr)
+library(magrittr)
 library(reticulate)
-use_condaenv('sandbox')
+library(ggrepel)
+library(fs)
+library(cowplot)
+library(gganimate)
+use_condaenv("invision-env")
 
-source_python('~/GitHub/invision-tools/utils/read_pickle.py')
+args <- commandArgs(trailingOnly = TRUE)
 
-df <- read_pickle_file('/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240111/scw_response_double_agar1_20240111_20240111_125604.24568744/scw_response_double_agar1_20240111_20240111_125604_tracks.pkl.gz')
+source_python("~/GitHub/invision-tools/utils/read_pickle.py")
+
+right <- read_pickle_file(args[1]) %>%
+  mutate(particle = str_c("right_", particle))
+left <- read_pickle_file(args[2]) %>%
+  mutate(
+    particle = str_c("left_", particle),
+    x = x - 5496
+  )
+joined <- bind_rows(right, left)
 
 calc_dist <- function(df) {
-  
-  df <- df %>% 
-    drop_na() %>% 
-    arrange(particle, frame) %>% 
-    group_by(particle) %>%
+  df <- df %>%
+    arrange(frame) %>%
+    slice(c(1, n())) %>%
     mutate(
-      smooth_x = predict(loess(x ~ seq(1:length(x)), span = 1)),
-      smooth_y = predict(loess(y ~ seq(1:length(y)), span = 1))
-    ) %>% 
-    mutate(
-      diff_x = c(0, diff(smooth_x)),
-      diff_y = c(0, diff(smooth_y)),
-      change_x = case_when(
-        sign(diff_x) != sign(lead(diff_x)) & diff_x != 0 ~ TRUE,
-        TRUE ~ FALSE),
-      change_y = case_when(
-        sign(diff_y) != sign(lead(diff_y)) & diff_y != 0 ~ TRUE,
-        TRUE ~ FALSE)
-    ) %>% 
-    mutate(dist = sqrt((lead(smooth_x) - smooth_x)^2 + (lead(smooth_y) - smooth_y)^2),
-           w = atan2(lead(smooth_y) - smooth_y, lead(smooth_x) - smooth_x) - atan2(smooth_y - lag(smooth_y), x - lag(smooth_x)))
-  
-  return(df)
-  
+      dist = sqrt((lead(x) - x)^2 + (lead(y) - y)^2)
+    )
+
+  return(df$dist[1])
 }
 
-longest <- df %>% 
-  group_by(particle) %>% 
-  summarise(n = n()) %>% 
-  filter(n > 200)
+df_dist <- joined %>%
+  group_nest(particle) %>%
+  # slice(1:15) %>%
+  mutate(
+    n_frames = map_int(data, ~ count(.x)$n)
+  ) %>%
+  filter(n_frames > 200) %>%
+  mutate(
+    dist = map_dbl(data, calc_dist)
+  )
 
-plot <- df %>% 
-  filter(particle %in% longest$particle) %>% 
-  group_by(particle) %>% 
-  arrange(frame) %>% 
+filtered <- df_dist %>%
+  filter(dist > 500) %>%
+  unnest(data)
+
+labels <- filtered %>%
+  group_by(particle) %>%
+  arrange(frame, .by_group = TRUE) %>%
+  slice(1)
+
+# initial <- filtered %>%
+#   group_by(particle) %>%
+#   arrange(frame) %>%
+#   ggplot() +
+#   geom_path(aes(x = x, y = y, group = particle, color = frame)) +
+#   scale_color_viridis_c() +
+#   scale_x_continuous(breaks = seq(-6000, 6000, 500)) +
+#   theme_minimal() +
+#   theme(
+#     # panel.grid = element_blank(),
+#     # legend.position = 'empty'
+#   ) +
+#   NULL
+
+shifted <- filtered %>%
+  mutate(
+    x = case_when(
+      str_detect(particle, "right") ~ x - 385,
+      TRUE ~ x
+    ),
+    y = case_when(
+      str_detect(particle, "right") ~ y + 125,
+      TRUE ~ y
+    )
+  )
+
+post <- shifted %>%
+  group_by(particle) %>%
+  arrange(frame) %>%
   ggplot() +
-  geom_path(aes(x = x, y = y, group = particle, color = frame)) +
+  annotate("rect",
+    xmin = -385, xmax = 0,
+    ymin = -Inf, ymax = Inf,
+    fill = "grey", alpha = .5
+  ) +
+  annotate("rect",
+    xmin = -5496 + 1296, xmax = -5496 + 1296 + 1110,
+    ymin = 1380, ymax = 1380 + 1164,
+    fill = "indianred", alpha = .25
+  ) +
+  annotate("rect",
+    xmin = 3342 - 385, xmax = 3342 + 1050 - 385,
+    ymin = 1326, ymax = 1326 + 1104,
+    fill = "steelblue", alpha = .25
+  ) +
+  geom_path(aes(x = x, y = y, group = particle, color = frame),
+    linewidth = 3
+  ) +
   scale_color_viridis_c() +
-  # scale_x_continuous(limits = c(0, 5400)) +
-  # scale_y_continuous(limits = c(0, 3400)) +
+  coord_equal() +
+  scale_x_continuous(breaks = seq(-5500, 5500, 500)) +
+  scale_y_continuous(breaks = seq(0, 3750, 500)) +
   theme_minimal() +
-  theme(panel.grid = element_blank()) +
+  theme(
+    panel.grid = element_blank(),
+    legend.position = "bottom"
+  ) +
   NULL
+#
+# anim <- animate(post + transition_reveal(frame),
+#                            nframes = 650,
+#                            fps = 50,
+#                            renderer = gifski_renderer(),
+#                            width = 11 * 300, height = 5 * 300, units = 'px'
+# )
+#
+# anim_save(filename = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240111/scw_response_double_agar1.gif',
+#                      animation = anim)
 
-cowplot::save_plot('/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240111/scw_response_double_agar1_20240111_20240111_125604.24568744/temp_r.pdf',
-                   plot)
+save_plot("/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240111/scw_response_double_agar1.gif",
+  post,
+  base_height = 5,
+  base_width = 11
+)
