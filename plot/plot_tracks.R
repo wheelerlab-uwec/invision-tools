@@ -7,14 +7,20 @@ library(fs)
 library(cowplot)
 library(gganimate)
 use_condaenv("invision-env")
+library(here)
 
-args <- commandArgs(trailingOnly = TRUE)
+# args <- commandArgs(trailingOnly = TRUE)
 
 source_python("~/GitHub/invision-tools/utils/read_pickle.py")
 
-right <- read_pickle_file(args[1]) %>%
+set_here("/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240104/")
+
+right_file = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240104/scw_response_test2_20240104_145225.24568744/scw_response_test2_20240104_145225_tracks.pkl.gz'
+left_file = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240104/scw_response_test2_20240104_145225.24568709/scw_response_test2_20240104_145225_tracks.pkl.gz'
+
+right <- read_pickle_file(right_file) %>%
   mutate(particle = str_c("right_", particle))
-left <- read_pickle_file(args[2]) %>%
+left <- read_pickle_file(left_file) %>%
   mutate(
     particle = str_c("left_", particle),
     x = x - 5496
