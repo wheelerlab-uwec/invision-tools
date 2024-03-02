@@ -45,6 +45,7 @@ def track_batch(video, output):
     base = Path(output).stem
     os.makedirs(output, exist_ok=True)
     
+    worm_vid = cv2.VideoCapture(video)
     num_frames = int(worm_vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     ret, frame = worm_vid.read()
