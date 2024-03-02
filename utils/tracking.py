@@ -44,7 +44,7 @@ def crop(frame, l, r, t, b):
 def track_batch(video, output):
     base = Path(output).stem
     os.makedirs(output, exist_ok=True)
-    worm_vid = cv2.VideoCapture(video)
+    
     num_frames = int(worm_vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     ret, frame = worm_vid.read()
@@ -81,8 +81,15 @@ def track_batch(video, output):
             cv2.imwrite(str(save_path), arr)
         i += 1
 
+    if 'miracidia' in output:
+        diameter = 35
+        minmass = 0
+    elif 'mosquito' in output:
+        diameter = 95
+        minmass = 50000
+
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hd5")) as s:
-        tp.batch(worm_arr, 35, topn=50,
+        tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, 
                  output=s)
 
 
