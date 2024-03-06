@@ -11,14 +11,14 @@ import pickle
 import glob
 
 
-def merge_data(hd5s, input):
+def merge_data(hdf5s, input):
 
     all_data = []
 
-    sorted = hd5s.sort()
+    sorted = hdf5s.sort()
 
     i = 0
-    for file, i in zip(hd5s, range(len(hd5s))):
+    for file, i in zip(hdf5s, range(len(hdf5s))):
         with tp.PandasHDFStore(file, mode='r') as hdf5:
             print(f'Getting data from {Path(file).stem}')
             all_results = hdf5.dump()
@@ -43,7 +43,7 @@ def merge_data(hd5s, input):
     if 'particle' in all_data.columns:
         all_data = all_data.drop(columns=['particle'])
 
-    parent = Path(hd5s[0]).parent
+    parent = Path(hdf5s[0]).parent
     pickle_path = Path(input, Path(input).stem + '_tracks.pkl.gz')
     with gzip.open(pickle_path, 'wb') as f:
         print('Writing pickle file.')
@@ -54,8 +54,14 @@ def merge_data(hd5s, input):
 
 def generate_tracks(df, input):
 
+    if 'miracidia' in input:
+        search_range = 100
+        memory = 100
+    elif 'mosquito' in input:
+        search_range = 1000
+        memory = 1000
     print('Linking particles.')
-    t = tp.link(df, 50, memory=100)
+    t = tp.link(df, search_range=search_range, memory=memory)
     pickle_path = Path(input, Path(input).stem + '_tracks.pkl.gz')
     with gzip.open(pickle_path, 'wb') as f:
         print('Writing pickle file.')
@@ -81,7 +87,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Track objects in an InVision video.')
     parser.add_argument('input',
-                        type=str, help='Path to input directory containing .pkl.gz or .hd5')
+                        type=str, help='Path to input directory containing .pkl.gz or .hdf5')
     parser.add_argument('--pickle', action='store_true')
     parser.add_argument('--hdf5', action='store_true')
 
@@ -95,7 +101,7 @@ if __name__ == '__main__':
         plot_tracks(tracks, args.input)
 
     elif args.hdf5:
-        hdf5_files = glob.glob(f'{args.input}/*.hd5')
+        hdf5_files = glob.glob(f'{args.input}/*.hdf5')
         merged = merge_data(sorted(hdf5_files), args.input)
         tracks = generate_tracks(merged, args.input)
         plot_tracks(tracks, args.input)
