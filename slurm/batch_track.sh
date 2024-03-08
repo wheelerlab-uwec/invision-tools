@@ -25,6 +25,12 @@ module load python-libs
 conda init bash
 conda activate invision-env
 
+base_dir='/data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709'
+
 export PYTHONUNBUFFERED=TRUE
 
-python ~/GitHub/invision-tools/utils/tracking.py /data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709/00000${SLURM_ARRAY_TASK_ID}.mp4 /data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709/00000${SLURM_ARRAY_TASK_ID} 
+python ~/GitHub/invision-tools/utils/tracking.py $base_dir/00000${SLURM_ARRAY_TASK_ID}.mp4 $base_dir/00000${SLURM_ARRAY_TASK_ID} 
+
+mv $base_dir/00000${SLURM_ARRAY_TASK_ID}/00000${SLURM_ARRAY_TASK_ID}.hdf5 $base_dir
+
+python ~/GitHub/invision-tools/utils/link_trajectories.py $base_dir --hdf5 
