@@ -1,22 +1,27 @@
-library(ggplot)
+library(ggplot2)
 library(dplyr)
 library(magrittr)
+library(stringr)
+library(purrr)
+library(tidyr)
 library(reticulate)
 library(ggrepel)
 library(fs)
 library(cowplot)
 library(gganimate)
-use_condaenv("invision-env")
+# reticulate::virtualenv_create("r-reticulate", force = TRUE)
+# reticulate::virtualenv_install(envname = 'r-reticulate', packages = 'pandas')
+reticulate::use_virtualenv('r-reticulate')
 library(here)
 
 # args <- commandArgs(trailingOnly = TRUE)
 
 source_python("~/GitHub/invision-tools/utils/read_pickle.py")
 
-set_here("/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240104/")
+set_here("/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-mosquito_sensation/videos/20240301-a01-MRB_20240301_144112.24568709")
 
-right_file = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240104/scw_response_test2_20240104_145225.24568744/scw_response_test2_20240104_145225_tracks.pkl.gz'
-left_file = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/20240104/scw_response_test2_20240104_145225.24568709/scw_response_test2_20240104_145225_tracks.pkl.gz'
+left_file = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-mosquito_sensation/videos/20240301-a01-MRB_20240301_144112.24568709/20240301-a01-MRB_20240301_144112_tracks.pkl.gz'
+right_file = '/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-mosquito_sensation/videos/20240301-a01-MRB_20240301_144112.24568744/20240301-a01-MRB_20240301_144112_tracks.pkl.gz'
 
 right <- read_pickle_file(right_file) %>%
   mutate(particle = str_c("right_", particle))
@@ -93,30 +98,34 @@ post <- shifted %>%
     ymin = -Inf, ymax = Inf,
     fill = "grey", alpha = .5
   ) +
-  annotate("rect",
-    xmin = -5496 + 1296, xmax = -5496 + 1296 + 1110,
-    ymin = 1380, ymax = 1380 + 1164,
-    fill = "indianred", alpha = .25
-  ) +
-  annotate("rect",
-    xmin = 3342 - 385, xmax = 3342 + 1050 - 385,
-    ymin = 1326, ymax = 1326 + 1104,
-    fill = "steelblue", alpha = .25
-  ) +
+  # annotate("rect",
+  #   xmin = -5496 + 1296, xmax = -5496 + 1296 + 1110,
+  #   ymin = 1380, ymax = 1380 + 1164,
+  #   fill = "indianred", alpha = .25
+  # ) +
+  # annotate("rect",
+  #   xmin = 3342 - 385, xmax = 3342 + 1050 - 385,
+  #   ymin = 1326, ymax = 1326 + 1104,
+  #   fill = "steelblue", alpha = .25
+  # ) +
   geom_path(aes(x = x, y = y, group = particle, color = frame),
-    linewidth = 3
+    linewidth = 1, lineend = "round"
   ) +
   scale_color_viridis_c() +
   coord_equal() +
-  scale_x_continuous(breaks = seq(-5500, 5500, 500)) +
+  scale_x_continuous(breaks = seq(-5100, 5100, 500),
+                     limits = c(-5100, 5100)) +
   scale_y_continuous(breaks = seq(0, 3750, 500)) +
   theme_minimal() +
   theme(
     panel.grid = element_blank(),
-    legend.position = "bottom"
+    legend.position = "none"
   ) +
   NULL
-#
+post
+
+save_plot()
+
 # anim <- animate(post + transition_reveal(frame),
 #                            nframes = 650,
 #                            fps = 50,

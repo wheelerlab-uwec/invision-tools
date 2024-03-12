@@ -16,3 +16,7 @@ RUN wget --progress=dot:giga https://downloads.globus.org/globus-connect-server/
     apt-key add /usr/share/globus-repo/RPM-GPG-KEY-Globus && \
     apt-get update && \
     apt-get install -y globus-connect-server54
+
+EXPOSE 50000-51000
+
+EXPOSE 443

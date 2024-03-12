@@ -15,8 +15,6 @@ def merge_data(hdf5s, input):
 
     all_data = []
 
-    sorted = hdf5s.sort()
-
     i = 0
     for file, i in zip(hdf5s, range(len(hdf5s))):
         with tp.PandasHDFStore(file, mode='r') as hdf5:
@@ -43,7 +41,6 @@ def merge_data(hdf5s, input):
     if 'particle' in all_data.columns:
         all_data = all_data.drop(columns=['particle'])
 
-    parent = Path(hdf5s[0]).parent
     pickle_path = Path(input, Path(input).stem + '_tracks.pkl.gz')
     with gzip.open(pickle_path, 'wb') as f:
         print('Writing pickle file.')

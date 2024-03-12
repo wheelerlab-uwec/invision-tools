@@ -1,0 +1,16 @@
+sudo docker run -dit --rm --cap-add SYS_ADMIN --privileged -v /sys/fs/cgroup/:/sys/fs/cgroup:ro -p 50000-51000:50000-51000 -p 49999:443 wheelern/globus_docker:0.0.3 /usr/sbin/init
+
+globus-connect-server endpoint setup "Wheeler Lab GCSv5.4 Endpoint" \
+    --organization "Wheeler Lab @ UWEC" \
+    --owner wheelenj@uwec.edu \
+    --contact-email wheelenj@uwec.edu
+    
+globus-connect-server node setup --ip-address 137.28.94.11
+
+systemctl reload apache2
+
+globus-connect-server login localhost
+
+globus-connect-server endpoint show
+
+sudo docker cp 23c50c787d73:/var/lib/globus-connect-server/grid-security/certificates/. /volume1/WheelerLab_data/globus_certificates/
