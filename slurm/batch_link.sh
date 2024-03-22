@@ -8,7 +8,7 @@
 #SBATCH --error=%A\_%a_error.txt	# Error file - Use %j to inject job id, like error-%j.txt
 
 #SBATCH --partition=week	# Which group of nodes do you want to use? Use "GPU" for graphics card support
-#SBATCh --time=0-2:00:00	# What is the max time you expect the job to finish by? DD-HH:MM:SS
+#SBATCH --time=0-2:00:00	# What is the max time you expect the job to finish by? DD-HH:MM:SS
 
 # -- Resource Requirements -- #
 #SBATCH --mem=16G		# How much memory do you need?
@@ -21,7 +21,6 @@
 
 # ---- YOUR SCRIPT ---- #
 module load python-libs
-conda init bash
 conda activate invision-env
 
 base_dir='/data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709'
