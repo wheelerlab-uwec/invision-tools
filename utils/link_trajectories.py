@@ -52,11 +52,11 @@ def merge_data(hdf5s, input):
 def generate_tracks(df, input):
 
     if 'miracidia' in input:
-        search_range = 100
+        search_range = 50
         memory = 100
     elif 'mosquito' in input:
-        search_range = 1000
-        memory = 1000
+        search_range = 750
+        memory = 100
     print('Linking particles.')
     t = tp.link(df, search_range=search_range, memory=memory)
     pickle_path = Path(input, Path(input).stem + '_tracks.pkl.gz')
