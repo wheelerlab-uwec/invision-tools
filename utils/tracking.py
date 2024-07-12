@@ -44,7 +44,7 @@ def crop(frame, l, r, t, b):
 def track_batch(video, output):
     base = Path(output).stem
     os.makedirs(output, exist_ok=True)
-    
+
     worm_vid = cv2.VideoCapture(video)
     num_frames = int(worm_vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -55,57 +55,53 @@ def track_batch(video, output):
     # Reset the video capture to the first frame
     worm_vid.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-    worm_arr = np.zeros(
-        (num_frames, frame_shape[0], frame_shape[1]), np.uint8)
+    worm_arr = np.zeros((num_frames, frame_shape[0], frame_shape[1]), np.uint8)
     for i in range(num_frames):
 
         if i % 50 == 0:
-            print(f'Loading frame {i} to memory.')
+            print(f"Loading frame {i} to memory.")
         ret, frame = worm_vid.read()
         if not ret:
             break
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         worm_arr[i] = frame
 
-    i = 0
-    for frame in worm_arr:
-        if i % 50 == 0:
-            print(f'Processing frame {i}')
-            print(f'Regenerating background using frames {i} to {i+50}.')
-            background = np.amax(worm_arr[i:i+50, :, :], axis=0)
-            save_path = Path(output, "background.png")
-            cv2.imwrite(str(save_path), background)
-        arr = process_frame(frame, background)
-        worm_arr[i] = arr
-        if i % 450 == 0:
-            save_path = Path(output, f"{base}_{i}.png")
-            cv2.imwrite(str(save_path), arr)
-        i += 1
+    if "miracidia" or "mosquito" in output:
+        i = 0
+        for frame in worm_arr:
+            if i % 50 == 0:
+                print(f"Processing frame {i}")
+                print(f"Regenerating background using frames {i} to {i+50}.")
+                background = np.amax(worm_arr[i : i + 50, :, :], axis=0)
+                save_path = Path(output, "background.png")
+                cv2.imwrite(str(save_path), background)
+            arr = process_frame(frame, background)
+            worm_arr[i] = arr
+            if i % 450 == 0:
+                save_path = Path(output, f"{base}_{i}.png")
+                cv2.imwrite(str(save_path), arr)
+            i += 1
 
-    if 'miracidia' in output:
+    if "miracidia" in output:
         diameter = 35
         minmass = 0
-    elif 'mosquito' in output:
+    elif "mosquito" in output:
         diameter = 95
         minmass = 50000
-    elif 'planaria' in output:
+    elif "planaria" in output:
         diameter = 83
         minmass = 148000
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
-        tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, 
-                 output=s)
+        tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, output=s)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description='Track objects in an InVision video.')
+    parser = argparse.ArgumentParser(description="Track objects in an InVision video.")
 
-    parser.add_argument('video', type=str,
-                        help='Path to the video.')
-    parser.add_argument('output', type=str,
-                        help='Path to the output directory.')
+    parser.add_argument("video", type=str, help="Path to the video.")
+    parser.add_argument("output", type=str, help="Path to the output directory.")
     # parser.add_argument('-l', '--left', type=int,
     #                     help='Number of cols to remove from the left.')
     # parser.add_argument('-r', '--right', type=int,
@@ -116,6 +112,4 @@ if __name__ == '__main__':
     #                     help='Number of cols to remove from the bottom.')
     args = parser.parse_args()
 
-    track_batch(args.video,
-                args.output
-                )
+    track_batch(args.video, args.output)
