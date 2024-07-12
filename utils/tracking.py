@@ -88,6 +88,9 @@ def track_batch(video, output):
     elif 'mosquito' in output:
         diameter = 95
         minmass = 50000
+    elif 'planaria' in output:
+        diameter = 83
+        minmass = 148000
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
         tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, 
