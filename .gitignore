@@ -2,7 +2,7 @@
 *.mp4
 temp.*
 .DS_Store
-*ipynb
+# *ipynb
 .conda/
 
 # Byte-compiled / optimized / DLL files
