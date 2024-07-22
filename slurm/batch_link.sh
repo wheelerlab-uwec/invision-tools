@@ -23,8 +23,8 @@
 module load python-libs
 conda activate invision-env
 
-base_dir='/data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709'
+# base_dir='/data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709'
 
 export PYTHONUNBUFFERED=TRUE
 
-python ~/GitHub/invision-tools/utils/link_trajectories.py $base_dir --hdf5 
+python ~/GitHub/invision-tools/utils/link_trajectories.py $PWD --hdf5 

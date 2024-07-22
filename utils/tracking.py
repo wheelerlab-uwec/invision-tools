@@ -66,7 +66,7 @@ def track_batch(video, output):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         worm_arr[i] = frame
 
-    if "miracidia" or "mosquito" in output:
+    if "planaria" not in output:
         i = 0
         for frame in worm_arr:
             if i % 50 == 0:
