@@ -66,7 +66,7 @@ def track_batch(video, output):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         worm_arr[i] = frame
 
-    if "miracidia" or "mosquito" in output:
+    if "planaria" not in output:
         i = 0
         for frame in worm_arr:
             if i % 50 == 0:
@@ -81,20 +81,24 @@ def track_batch(video, output):
                 save_path = Path(output, f"{base}_{i}.png")
                 cv2.imwrite(str(save_path), arr)
             i += 1
-
-    if "miracidia" in output:
-        diameter = 35
-        minmass = 0
-    elif "mosquito" in output:
-        diameter = 95
-        minmass = 50000
-    elif "planaria" in output:
+        if "miracidia" in output:
+            diameter = 35
+            minmass = 0
+            with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
+                tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, output=s)
+        elif "mosquito" in output:
+            diameter = 95
+            minmass = 50000
+            with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
+                tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, output=s)
+        else:
+            print("Something went wrong.")
+    else:
         diameter = 83
         minmass = 148000
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
         tp.batch(worm_arr, diameter=diameter, minmass=minmass, output=s)
-
 
 if __name__ == "__main__":
 
