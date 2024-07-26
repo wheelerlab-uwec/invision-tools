@@ -12,7 +12,7 @@
 
 # -- Resource Requirements -- #
 #SBATCH --mem=16G		# How much memory do you need?
-#SBATCH --ntasks-per-node=64	# How many CPU cores do you want to use per node (max 64)?
+#SBATCH --ntasks-per-node=16	# How many CPU cores do you want to use per node (max 64)?
 #SBATCH --nodes=1		# How many nodes do you need to use at once?
 ##SBATCH --gpus=1		# Do you require a graphics card? How many (up to 3 per node)? Remove the first "#" to activate.
 
