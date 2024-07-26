@@ -93,7 +93,7 @@ def track_batch(video, output):
         minmass = 148000
 
     with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
-        tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=50, output=s)
+        tp.batch(worm_arr, diameter=diameter, minmass=minmass, output=s)
 
 
 if __name__ == "__main__":
