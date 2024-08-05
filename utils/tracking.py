@@ -68,12 +68,13 @@ def track_batch(video, output):
 
     if "planaria" not in output:
         i = 0
+        chunk = 25
         for frame in worm_arr:
-            if i % 50 == 0:
+            if i % chunk == 0:
                 print(f"Processing frame {i}")
-                print(f"Regenerating background using frames {i} to {i+50}.")
-                background = np.amax(worm_arr[i : i + 50, :, :], axis=0)
-                save_path = Path(output, "background.png")
+                print(f"Regenerating background using frames {i} to {i+chunk}.")
+                background = np.amax(worm_arr[i : i + chunk, :, :], axis=0)
+                save_path = Path(output, f"background_{chunk}.png")
                 cv2.imwrite(str(save_path), background)
             arr = process_frame(frame, background)
             worm_arr[i] = arr
@@ -83,9 +84,11 @@ def track_batch(video, output):
             i += 1
         if "miracidia" in output:
             diameter = 35
-            minmass = 0
+            minmass = 1200
+            noise_size = 2
+            topn = None
             with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
-                tp.batch(worm_arr, diameter=diameter, minmass=minmass, output=s)
+                tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=topn, noise_size=noise_size, output=s)
         elif "mosquito" in output:
             diameter = 95
             minmass = 50000
