@@ -26,11 +26,13 @@ conda activate invision-env
 
 export PYTHONUNBUFFERED=TRUE
 
-for video in *.mp4; do
+for video in *.mp4; 
+do
     video_name="${video%.mp4}"
     echo "Analyzing $video_name"
-    python ~/GitHub/invision-tools/utils/tracking.py $PWD/$video $PWD/$video
+    python ~/GitHub/invision-tools/utils/tracking.py $PWD/$video $PWD/$video_name
     mv $PWD/$video_name/$video_name.hdf5 $PWD
+done
 
 echo "Linking trajectories"
 python ~/GitHub/invision-tools/utils/link_trajectories.py $PWD --hdf5 
