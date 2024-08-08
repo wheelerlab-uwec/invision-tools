@@ -4,9 +4,9 @@
 
 # -- Job Specific -- #
 #SBATCH --job-name="tracking"	# What is your job called?
-#SBATCH --output=%A\_%a_output.txt	# Output file - Use %j to inject job id, like output-%j.txt
-#SBATCH --error=%A\_%a_error.txt	# Error file - Use %j to inject job id, like error-%j.txt
-#SBATCH --array=0
+#SBATCH --output=output-%j.txt	# Output file - Use %j to inject job id, like output-%j.txt
+#SBATCH --error=error-%j.txt	# Error file - Use %j to inject job id, like error-%j.txt
+##SBATCH --array=0
 
 #SBATCH --partition=week	# Which group of nodes do you want to use? Use "GPU" for graphics card support
 #SBATCH --time=0-12:00:00	# What is the max time you expect the job to finish by? DD-HH:MM:SS
