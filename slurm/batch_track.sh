@@ -8,11 +8,11 @@
 #SBATCH --error=%A\_%a_error.txt	# Error file - Use %j to inject job id, like error-%j.txt
 #SBATCH --array=0
 
-#SBATCH --partition=highmemory	# Which group of nodes do you want to use? Use "GPU" for graphics card support
+#SBATCH --partition=week	# Which group of nodes do you want to use? Use "GPU" for graphics card support
 #SBATCH --time=0-12:00:00	# What is the max time you expect the job to finish by? DD-HH:MM:SS
 
 # -- Resource Requirements -- #
-#SBATCH --mem=500G		# How much memory do you need?
+#SBATCH --mem=245G		# How much memory do you need?
 #SBATCH --ntasks-per-node=64	# How many CPU cores do you want to use per node (max 64)?
 #SBATCH --nodes=1		# How many nodes do you need to use at once?
 ##SBATCH --gpus=1		# Do you require a graphics card? How many (up to 3 per node)? Remove the first "#" to activate.
@@ -24,10 +24,13 @@
 module load python-libs
 conda activate invision-env
 
-# base_dir='/data/groups/wheelenj/mosquitoes/20240301-a01-MRB_20240301_144112.24568709'
-
 export PYTHONUNBUFFERED=TRUE
 
-python ~/GitHub/invision-tools/utils/tracking.py $PWD/00000${SLURM_ARRAY_TASK_ID}.mp4 $PWD/00000${SLURM_ARRAY_TASK_ID} 
+for video in *.mp4; do
+    video_name="${video%.mp4}"
+    echo "Analyzing $video_name"
+    python ~/GitHub/invision-tools/utils/tracking.py $PWD/$video $PWD/$video
+    mv $PWD/$video_name/$video_name.hdf5 $PWD
 
-mv $PWD/00000${SLURM_ARRAY_TASK_ID}/00000${SLURM_ARRAY_TASK_ID}.hdf5 $PWD
+echo "Linking trajectories"
+python ~/GitHub/invision-tools/utils/link_trajectories.py $PWD --hdf5 
