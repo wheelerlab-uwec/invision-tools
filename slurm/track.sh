@@ -12,7 +12,7 @@
 #SBATCH --time=0-12:00:00	# What is the max time you expect the job to finish by? DD-HH:MM:SS
 
 # -- Resource Requirements -- #
-#SBATCH --mem=245G		# How much memory do you need?
+#SBATCH --mem=259=0G		# How much memory do you need?
 #SBATCH --ntasks-per-node=64	# How many CPU cores do you want to use per node (max 64)?
 #SBATCH --nodes=1		# How many nodes do you need to use at once?
 ##SBATCH --gpus=1		# Do you require a graphics card? How many (up to 3 per node)? Remove the first "#" to activate.
