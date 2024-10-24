@@ -26,8 +26,8 @@ conda activate invision-env
 
 export PYTHONUNBUFFERED=TRUE
 
-python ~/GitHub/invision-tools/utils/tracking.py $PWD/00000${SLURM_ARRAY_TASK_ID}.mp4/ $PWD/00000${SLURM_ARRAY_TASK_ID}
-mv $$PWD/00000${SLURM_ARRAY_TASK_ID}/00000${SLURM_ARRAY_TASK_ID}.hdf5 $PWD
+python ~/GitHub/invision-tools/utils/tracking.py $PWD/00000${SLURM_ARRAY_TASK_ID}.mp4 $PWD/00000${SLURM_ARRAY_TASK_ID}
+mv $PWD/00000${SLURM_ARRAY_TASK_ID}/00000${SLURM_ARRAY_TASK_ID}.hdf5 $PWD
 
 echo "Linking trajectories"
 python ~/GitHub/invision-tools/utils/link_trajectories.py $PWD --hdf5 
