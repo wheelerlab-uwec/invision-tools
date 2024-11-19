@@ -21,16 +21,15 @@ def merge_data(hdf5s, input):
             print(f"Getting data from {Path(file).stem}")
             all_results = hdf5.dump()
             if i == 0:
-                zero_records = int(all_results["frame"].max())
-                print(f"{zero_records} frames in {Path(file).stem}")
-            elif i == 1:
-                one_records = int(all_results["frame"].max())
-                all_results["frame"] += zero_records + 1
-                print(f"{one_records} frames in {Path(file).stem}")
-            elif i == 2:
-                two_records = int(all_results["frame"].max())
-                all_results["frame"] += zero_records + one_records + 1
-                print(f"{two_records} frames in {Path(file).stem}")
+                records = int(all_results["frame"].max())
+                total_records = records
+                print(f"{records} frames in {Path(file).stem}")
+            elif i != 0:
+                new_records = int(all_results["frame"].max())
+                total_records = total_records + new_records + 1
+                all_results["frame"] += total_records - new_records
+                print(
+                    f"{new_records} frames in {Path(file).stem}. {total_records} total records")
             all_data.append(all_results)
             i += 1
 
@@ -65,7 +64,8 @@ def generate_tracks(df, input):
         adaptive_stop = None
 
     print("Linking particles.")
-    t = tp.link(df, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop)
+    t = tp.link(df, search_range=search_range,
+                memory=memory, adaptive_stop=adaptive_stop)
     pickle_path = Path(input, Path(input).stem + "_tracks.pkl.gz")
     with gzip.open(pickle_path, "wb") as f:
         print("Writing pickle file.")
@@ -88,7 +88,8 @@ def plot_tracks(tracks, input):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Track objects in an InVision video.")
+    parser = argparse.ArgumentParser(
+        description="Track objects in an InVision video.")
     parser.add_argument(
         "input", type=str, help="Path to input directory containing .pkl.gz or .hdf5"
     )
