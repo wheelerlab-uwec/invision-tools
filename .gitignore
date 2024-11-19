@@ -4,6 +4,7 @@ temp.*
 .DS_Store
 # *ipynb
 .conda/
+testing
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
