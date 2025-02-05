@@ -46,6 +46,7 @@ dependencies:
   - imageio=2.33.1=pyh8c1a49c_0
   - importlib-metadata=7.0.1=pyha770c72_0
   - importlib_metadata=7.0.1=hd8ed1ab_0
+  - ipykernel
   - jpeg=9e=h166bdaf_1
   - jxrlib=1.1=h7f98852_2
   - kiwisolver=1.4.4=py311h6a678d5_0
