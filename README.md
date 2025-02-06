@@ -2,7 +2,7 @@
 
 To use the Snakefile:
 
-1. `Snakefile` to the directory to be analyzed and `cd` to that directory.
+1. Copy the `Snakefile` to the directory to be analyzed and `cd` to that directory.
 2. Run `nohup snakemake --profile ~/GitHub/invision-tools/slurm-profile/ &`
 
 Logs will be written to two locations:
