@@ -66,11 +66,11 @@ def generate_tracks(df, input):
     elif "mosquito" in input:
         search_range = 750
         memory = 100
-        adaptive_stop = None
+        adaptive_stop = 50
     elif "planaria" in input:
         search_range = 750
         memory = 100
-        adaptive_stop = None
+        adaptive_stop = 50
 
     print("Linking particles.")
     t = tp.link(df, search_range=search_range,
