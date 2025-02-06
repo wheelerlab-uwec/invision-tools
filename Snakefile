@@ -5,7 +5,8 @@ from pathlib import Path
 os.environ["PYTHONUNBUFFERED"] = "1"
 
 work = str(Path.cwd()) + '/'
-experiment = work.rsplit('/',2)[-2]
+experiment_cam = work.rsplit('/',2)[-2]
+experiment = experiment_cam.rsplit('.', 1)[0]
 
 VIDEOS = [os.path.basename(x) for x in glob.glob(work + "*.mp4")]
 STEMS = [Path(x).stem for x in VIDEOS]

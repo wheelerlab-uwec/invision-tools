@@ -14,23 +14,32 @@ import glob
 def merge_data(hdf5s, input):
 
     all_data = []
-
     i = 0
+    total_records = 0
     for file, i in zip(hdf5s, range(len(hdf5s))):
         with tp.PandasHDFStore(file, mode="r") as hdf5:
             print(f"Getting data from {Path(file).stem}")
-            all_results = hdf5.dump()
-            if i == 0:
-                records = int(all_results["frame"].max())
-                total_records = records
-                print(f"{records} frames in {Path(file).stem}")
-            elif i != 0:
-                new_records = int(all_results["frame"].max())
-                total_records = total_records + new_records + 1
-                all_results["frame"] += total_records - new_records
-                print(
-                    f"{new_records} frames in {Path(file).stem}. {total_records} total records")
-            all_data.append(all_results)
+            try:
+                all_results = hdf5.dump()
+                if i == 0:
+                    records = int(all_results["frame"].max())
+                    total_records = records
+                    print(f"{records} frames in {Path(file).stem}")
+                else:
+                    new_records = int(all_results["frame"].max())
+                    total_records = total_records + new_records + 1
+                    all_results["frame"] += total_records - new_records
+                    print(
+                        f"{new_records} frames in {Path(file).stem}. {total_records} total records")
+                all_data.append(all_results)
+            except ValueError as e:
+                if "No objects to concatenate" in str(e):
+                    print(f"Skipping empty file: {Path(file).stem}")
+                    if i == 0:
+                        total_records = -1  # Reset to -1 so next non-empty file starts at 0
+                    continue
+                else:
+                    raise e
             i += 1
 
     all_data = pd.concat(all_data)
