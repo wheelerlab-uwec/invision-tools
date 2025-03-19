@@ -14,7 +14,7 @@ STEMS = [Path(x).stem for x in VIDEOS]
 rule all:
     input:
         work + experiment + "_tracks.pkl.gz",
-        work + experiment + ".pdf",
+        # work + experiment + ".pdf",
         expand("{stem}.hdf5", stem=STEMS)
 
 rule track:
@@ -31,7 +31,7 @@ rule link:
     input: expand("{stem}.hdf5", stem=STEMS)
     output: 
         work + experiment + "_tracks.pkl.gz",
-        work + experiment + ".pdf"
+        # work + experiment + ".pdf"
     params: workdir = work
     threads: 64
     shell: "python ~/GitHub/invision-tools/utils/link_trajectories.py {params.workdir} --hdf5"
