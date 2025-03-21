@@ -122,7 +122,7 @@ def visualize_wells(
     outer_bounds=None,
     h_slope=0,
     v_slope=float("inf"),
-    sample_frame=0,
+    sample_frame=None,  # Changed default to None
     output_path=None,
 ):
     """
@@ -136,19 +136,21 @@ def visualize_wells(
         Dictionary of well DataFrames returned by split_by_wells
     h_lines, v_lines, outer_bounds, h_slope, v_slope:
         Same parameters used in split_by_wells
-    sample_frame : int, default=0
-        Which frame to visualize (to reduce clutter)
+    sample_frame : int, optional
+        Which frame to visualize (to reduce clutter). If None, will plot all frames.
     output_path : str, optional
         Path where visualization should be saved. If None, will use "{input_path}_well_visualization.png"
     """
     plt.figure(figsize=(15, 10))
 
-    # Plot all data points in light gray
+    # Plot all data points in light gray with transparency
     if sample_frame is not None:
         sample_df = df[df["frame"] == sample_frame]
     else:
+        # Use all points but with higher transparency
         sample_df = df
-    plt.scatter(sample_df["x"], sample_df["y"], c="lightgray", alpha=0.3, s=3)
+    # Increased alpha for better visibility when plotting all points
+    plt.scatter(sample_df["x"], sample_df["y"], c="lightgray", alpha=0.1, s=1)
 
     # Function to plot a sloped line
     def plot_sloped_line(
@@ -219,13 +221,19 @@ def visualize_wells(
         "pink",
         "olive",
     ]
+
+    # Plot individual wells with different colors and increased transparency
     for i, (cell, well_df) in enumerate(well_dfs.items()):
         color = colors[i % len(colors)]
         if sample_frame is not None:
             sample = well_df[well_df["frame"] == sample_frame]
         else:
+            # Use all points but with transparency
             sample = well_df
-        plt.scatter(sample["x"], sample["y"], color=color, s=10, label=f"Well {cell}")
+        # Smaller point size and increased transparency when plotting all points
+        plt.scatter(
+            sample["x"], sample["y"], color=color, s=3, alpha=0.3, label=f"Well {cell}"
+        )
 
     # Set up plot labels and limits
     plt.title("Particles Split by Wells")
@@ -233,6 +241,17 @@ def visualize_wells(
     plt.ylabel("Y Position")
     plt.xlim(min_x, max_x)
     plt.ylim(min_y, max_y)
+
+    # Set x and y ticks every 250 units
+    x_ticks = np.arange(
+        np.floor(min_x / 250) * 250, np.ceil(max_x / 250) * 250 + 1, 250
+    )
+    y_ticks = np.arange(
+        np.floor(min_y / 250) * 250, np.ceil(max_y / 250) * 250 + 1, 250
+    )
+    plt.xticks(x_ticks)
+    plt.yticks(y_ticks)
+
     plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.grid(False)
     plt.tight_layout()
