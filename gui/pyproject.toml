@@ -1,0 +1,22 @@
+[project]
+name = "invision-workflow-gui"
+version = "0.1.0"
+description = "Lab workflow GUI for video experiment processing"
+requires-python = ">=3.8"
+dependencies = [
+    "nicegui>=1.4.0",
+    "paramiko>=3.4.0",
+    "pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+]
