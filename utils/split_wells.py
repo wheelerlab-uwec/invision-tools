@@ -266,30 +266,43 @@ def visualize_wells(
     print(f"Visualization saved to: {output_path}")
 
 
-def validate_config(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Validate the configuration from YAML file."""
+def validate_config(config: Dict[str, Any], config_path: str) -> Dict[str, Any]:
+    """Validate the configuration from YAML file, inferring paths if needed."""
     validated = {}
+    import glob
 
-    # Validate input_path
-    if "input_path" not in config:
-        raise ValueError("input_path is required in the config file")
-    if not isinstance(config["input_path"], str):
-        raise TypeError("input_path must be a string")
-    if not os.path.exists(config["input_path"]):
-        raise FileNotFoundError(f"Input file not found: {config['input_path']}")
-    validated["input_path"] = config["input_path"]
+    # Get parent directory of config file
+    config_dir = os.path.dirname(os.path.abspath(config_path))
 
-    # Validate output_path (optional)
-    if "output_path" in config:
-        if not isinstance(config["output_path"], str):
-            raise TypeError("output_path must be a string")
-        validated["output_path"] = config["output_path"]
+    # Infer input_path if not provided
+    if "input_path" in config and config["input_path"] is not None:
+        input_path = config["input_path"]
+        if not isinstance(input_path, str):
+            raise TypeError("input_path must be a string")
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(f"Input file not found: {input_path}")
     else:
-        # Default to input path with csv extension
-        input_base = os.path.splitext(config["input_path"])[0]
+        # Find first .pkl.gz file in config_dir
+        candidates = sorted(glob.glob(os.path.join(config_dir, "*.pkl.gz")))
+        if not candidates:
+            raise FileNotFoundError(
+                f"No .pkl.gz file found in {config_dir} to use as input_path"
+            )
+        input_path = candidates[0]
+    validated["input_path"] = input_path
+
+    # Infer output_path if not provided
+    if "output_path" in config and config["output_path"] is not None:
+        output_path = config["output_path"]
+        if not isinstance(output_path, str):
+            raise TypeError("output_path must be a string")
+    else:
+        # Default to input path with _wells.csv extension
+        input_base = os.path.splitext(input_path)[0]
         if input_base.endswith(".gz"):  # Handle gzipped files
             input_base = os.path.splitext(input_base)[0]
-        validated["output_path"] = f"{input_base}_wells.csv"
+        output_path = f"{input_base}_wells.csv"
+    validated["output_path"] = output_path
 
     # Validate outer_bounds
     if "outer_bounds" in config and config["outer_bounds"] is not None:
@@ -355,7 +368,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        return validate_config(config)
+        return validate_config(config, config_path)
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing YAML file: {e}")
 

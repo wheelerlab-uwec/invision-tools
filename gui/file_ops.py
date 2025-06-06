@@ -371,6 +371,11 @@ class FileTransferManager:
                 print(f"DEBUG: Found {len(experiments)} experiments")
                 print(f"DEBUG: Returning experiments type: {type(experiments)}")
                 print(f"DEBUG: Sample returned experiments: {experiments[:2] if len(experiments) >= 2 else experiments}")
+                
+                # Additional debug: check each experiment item type
+                for i, exp in enumerate(experiments[:3]):  # Check first 3
+                    print(f"DEBUG: experiments[{i}] = {repr(exp)} (type: {type(exp)})")
+                
                 return experiments
 
             except IOError as e:

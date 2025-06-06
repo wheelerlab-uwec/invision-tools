@@ -397,14 +397,31 @@ class WorkflowGUI:
             )
 
             # Simple direct assignment (most reliable for NiceGUI)
-            self.experiment_table.rows[:] = rows
-            self.experiment_table.update()
+            try:
+                print(f"DEBUG: About to assign {len(rows)} rows to table")
+                print(f"DEBUG: Rows type: {type(rows)}")
+                print(f"DEBUG: Table rows type before: {type(self.experiment_table.rows)}")
+                
+                self.experiment_table.rows[:] = rows
+                self.experiment_table.update()
+                
+                print(f"DEBUG: Successfully updated table with {len(self.experiment_table.rows)} rows")
+            except Exception as e:
+                print(f"ERROR: Failed to update table: {e}")
+                print(f"ERROR: Exception type: {type(e)}")
+                import traceback
+                traceback.print_exc()
+                # Fallback: clear and rebuild
+                self.experiment_table.rows.clear()
+                for row in rows:
+                    self.experiment_table.rows.append(row)
+                self.experiment_table.update()
 
             # Debug logging
             # print(f"DEBUG: Table rows after update: {len(self.experiment_table.rows)}")
             # print(
             #     f"DEBUG: First row in table: {self.experiment_table.rows[0] if self.experiment_table.rows else 'No rows'}"
-            )
+            # )
 
             # Double-check table state
             if len(self.experiment_table.rows) == 0:
