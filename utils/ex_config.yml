@@ -1,0 +1,9 @@
+# example_config.yml
+input_path: "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/screening/sensory_stimulants/20250313c01cnn_20250313_132839.24568744/20250313c01cnn_20250313_132839_tracks.pkl.gz"
+output_path: "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/screening/sensory_stimulants/20250313c01cnn_20250313_132839.24568744/20250313c01cnn_20250313_132839.24568744.csv"
+outer_bounds: [250, 4800, 200, 3600]  # [min_x, max_x, min_y, max_y]
+v_lines: [800, 1400, 1950, 2500, 3100, 3650, 4200]  # Vertical grid lines
+h_lines: [750, 1300, 1900, 2450, 3000]    # Horizontal grid lines
+h_slope: 0.0                # Slope of horizontal lines (0 means perfectly horizontal)
+v_slope: "inf"              # Slope of vertical lines ("inf" means perfectly vertical)
+visualize: true             # Whether to display visualization

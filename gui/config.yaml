@@ -1,0 +1,30 @@
+# Configuration for Lab Workflow GUI
+# Non-sensitive settings only - credentials entered at runtime
+
+nas:
+  host: "data.wheelerlab.bio"
+  base_path: "/WheelerLab_data/InVision"
+  port: 22
+
+hpc:
+  host: "bose.hpc.uwec.edu" 
+  base_path: "/data/groups/wheelenj/"
+  port: 50022
+  available_projects:
+    - "miracidia"
+    - "mosquitoes"
+    - "planaria"
+  snakemake:
+    profile: "slurm"
+    workflow_path: "/home/{username}/GitHub/invision-tools"
+    conda_env: "invision-env"
+
+onedrive:
+  rclone_remote: "onedrive"
+  base_path: "Lab/ProcessedExperiments"
+
+gui:
+  session_timeout_hours: 24
+  batch_size: 10  # Max concurrent operations
+  port: 8080
+  title: "🧠 Lab Workflow Manager"
