@@ -8,13 +8,22 @@ cluster-generic-submit-cmd:
     --job-name=smk-{rule}-{wildcards}
     --output=logs/{rule}/{rule}-{wildcards}-%j.out
     --parsable
+    --gpus={resources.gpus}
 default-resources:
   - partition=highmemory
   - mem_mb=500000
+  - gpus=0
 set-resources:
     link:
         partition: week
         mem_mb: 250000
+    sleap_track:
+        partition: GPU
+        mem_mb: 32000
+        gpus: 1
+    sleap_convert:
+        partition: week
+        mem_mb: 8000
 restart-times: 1
 max-jobs-per-second: 10
 max-status-checks-per-second: 1
@@ -26,5 +35,5 @@ rerun-incomplete: True
 keep-incomplete: True
 printshellcmds: True
 scheduler: greedy
-# use-conda: True
+use-conda: True
 # conda-frontend: mamba
