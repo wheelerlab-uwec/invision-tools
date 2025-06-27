@@ -1,0 +1,52 @@
+# Snakefile
+
+import os
+import glob
+
+configfile: os.path.expanduser("~/GitHub/invision-tools/sleap/planaria/config.yaml")
+
+MODEL = config["model"]
+BATCH_SIZE = config.get("batch_size", 4)
+
+# Find the first mp4 in the current directory
+mp4s = glob.glob("*.mp4")
+if not mp4s:
+    raise ValueError("No mp4 files found in the current directory.")
+INPUT_MP4 = mp4s[0]
+
+rule all:
+    input:
+        f"{INPUT_MP4}.predictions.analysis.csv"
+
+rule sleap_track:
+    input:
+        mp4=INPUT_MP4
+    output:
+        slp=f"{INPUT_MP4}.predictions.slp"
+    params:
+        model=MODEL,
+        batch_size=BATCH_SIZE
+    resources:
+        mem_mb=32000,
+        gpus=1
+    conda: "sleap-1.4.1"
+    shell:
+        """
+        # module load sleap/1.4.1
+        sleap-track {input.mp4} -m {params.model} --batch_size {params.batch_size} --tracking.tracker none --verbosity json --no-empty-frames -o {output.slp}
+        """
+
+
+rule sleap_convert:
+    input:
+        slp=f"{INPUT_MP4}.predictions.slp"
+    output:
+        csv=f"{INPUT_MP4}.predictions.analysis.csv"
+    resources:
+        mem_mb=8000
+    conda: "sleap-1.4.1"
+    shell:
+        """
+        # module load sleap/1.4.1
+        sleap-convert --format analysis.csv -o {output.csv} {input.slp}
+        """
