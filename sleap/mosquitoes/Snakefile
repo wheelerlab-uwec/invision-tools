@@ -3,7 +3,7 @@
 import os
 import glob
 
-configfile: os.path.expanduser("~/GitHub/invision-tools/sleap/config.yaml")
+configfile: os.path.expanduser("~/GitHub/invision-tools/sleap/mosquitoes/config.yaml")
 
 MODEL = config["model"]
 BATCH_SIZE = config.get("batch_size", 4)
