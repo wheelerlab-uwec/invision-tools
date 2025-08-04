@@ -30,7 +30,7 @@ rule track:
 rule link:
     input: expand("{stem}.hdf5", stem=STEMS)
     output: 
-        work + experiment + "_tracks.pkl.gz",
+        work + experiment + "_tracks.feather",
         # work + experiment + ".pdf"
     params: workdir = work
     threads: 64

@@ -30,13 +30,16 @@ def merge_data(hdf5s, input):
                     total_records = total_records + new_records + 1
                     all_results["frame"] += total_records - new_records
                     print(
-                        f"{new_records} frames in {Path(file).stem}. {total_records} total records")
+                        f"{new_records} frames in {Path(file).stem}. {total_records} total records"
+                    )
                 all_data.append(all_results)
             except ValueError as e:
                 if "No objects to concatenate" in str(e):
                     print(f"Skipping empty file: {Path(file).stem}")
                     if i == 0:
-                        total_records = -1  # Reset to -1 so next non-empty file starts at 0
+                        total_records = (
+                            -1
+                        )  # Reset to -1 so next non-empty file starts at 0
                     continue
                 else:
                     raise e
@@ -49,10 +52,10 @@ def merge_data(hdf5s, input):
     if "particle" in all_data.columns:
         all_data = all_data.drop(columns=["particle"])
 
-    pickle_path = Path(input, Path(input).stem + "_tracks.pkl.gz")
-    with gzip.open(pickle_path, "wb") as f:
-        print("Writing pickle file.")
-        pickle.dump(all_data, f)
+    feather_path = Path(input, Path(input).stem + "_tracks.feather")
+    print("Writing feather file.")
+    all_data.reset_index(drop=True, inplace=True)
+    all_data.to_feather(feather_path)
 
     return all_data
 
@@ -73,12 +76,13 @@ def generate_tracks(df, input):
         adaptive_stop = 50
 
     print("Linking particles.")
-    t = tp.link(df, search_range=search_range,
-                memory=memory, adaptive_stop=adaptive_stop)
-    pickle_path = Path(input, Path(input).stem + "_tracks.pkl.gz")
-    with gzip.open(pickle_path, "wb") as f:
-        print("Writing pickle file.")
-        pickle.dump(t, f)
+    t = tp.link(
+        df, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
+    )
+    feather_path = Path(input, Path(input).stem + "_tracks.feather")
+    print("Writing feather file.")
+    t.reset_index(drop=True, inplace=True)
+    t.to_feather(feather_path)
     print("Filtering stubs.")
     t1 = tp.filter_stubs(t, 200)
 
@@ -97,8 +101,7 @@ def plot_tracks(tracks, input):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description="Track objects in an InVision video.")
+    parser = argparse.ArgumentParser(description="Track objects in an InVision video.")
     parser.add_argument(
         "input", type=str, help="Path to input directory containing .pkl.gz or .hdf5"
     )
