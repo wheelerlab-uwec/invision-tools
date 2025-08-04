@@ -13,7 +13,7 @@ STEMS = [Path(x).stem for x in VIDEOS]
 
 rule all:
     input:
-        work + experiment + "_tracks.pkl.gz",
+        work + experiment + "_tracks.feather",
         # work + experiment + ".pdf",
         expand("{stem}.hdf5", stem=STEMS)
 
