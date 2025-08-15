@@ -1,2 +1,2 @@
-model: "/data/groups/wheelenj/mosquitoes/models/250603_091255.single_instance.n=171/training_config.json"
+model: "/data/groups/wheelenj/mosquitoes/models/250627_162435.single_instance/training_config.json"
 batch_size: 4
