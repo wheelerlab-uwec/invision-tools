@@ -1,26 +1,30 @@
 import trackpy as tp
 import pandas as pd
-import pickle
-import gzip
+import matplotlib.pyplot as plt
 
 
-right = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240725/20240725-a04-RVH_20240725_142210.24568709/20240725-a04-RVH_20240725_142210_tracks.pkl.gz"
+#####################################
+############### 44/09 ###############
+#####################################
+
+right = pd.read_feather(
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.24568709/20250814a01sao_20250814_130939_tracks.feather"
 )
-left = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240725/20240725-a04-RVH_20240725_142210.24568744/20240725-a04-RVH_20240725_142210_tracks.pkl.gz"
+left = pd.read_feather(
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.24568744/20250814a01sao_20250814_130939_tracks.feather"
 )
 
-# Fix for TypeError: 'float' object is not callable
+# for 44/09, have to flip the right camera (09)
 max_x_val = max(right["x"])
 min_x_val = min(right["x"])
-right["x"] = max_x_val - right["x"] + min_x_val - 475
-right = right[right["x"] >= -10]
-right["y"] = right["y"] - 125
-right = right.drop("particle", axis=1)
 
+right = right.drop("particle", axis=1)
+right["x"] = max_x_val - right["x"] + min_x_val
+
+# for 44/09, have to make the left camera negative
 left = left.drop("particle", axis=1)
 left["x"] = left["x"] * -1
+
 combined = pd.concat([left, right])
 
 search_range = 45
@@ -31,32 +35,39 @@ t = tp.link(
     combined, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
 )
 
-pickle_path = "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240725/20240725-a04-RVH_tracks.pkl.gz"
+feather_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_top_tracks.feather"
+t.to_feather(feather_path)
 
-with gzip.open(pickle_path, "wb") as f:
-    print("Writing pickle file.")
-    pickle.dump(t, f)
+pdf_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_top_tracks.pdf"
+fig = plt.figure()
+ax = plt.gca()
+t1 = tp.filter_stubs(t, 200)
+tp.plot_traj(t1, ax=ax)
+fig.savefig(pdf_path)
 
 
-###########################################################
+#####################################
+############### 14/38 ###############
+#####################################
 
-right = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240627/20240627-a01-RVH_20240627_135846.24568709/20240627-a01-RVH_20240627_135846_tracks.pkl.gz"
+right = pd.read_feather(
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.25128038/20250814a01sao_20250814_130939_tracks.feather"
 )
-left = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240627/20240627-a01-RVH_20240627_135846.24568744/20240627-a01-RVH_20240627_135846_tracks.pkl.gz"
+left = pd.read_feather(
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.25112214/20250814a01sao_20250814_130939_tracks.feather"
 )
 
-# Fix for TypeError: 'float' object is not callable
-max_x_val = max(right["x"])
-min_x_val = min(right["x"])
-right["x"] = max_x_val - right["x"] + min_x_val - 475
-right = right[right["x"] >= -10]
-right["y"] = right["y"] - 125
+# for 14/38, right camera remains the same
 right = right.drop("particle", axis=1)
 
+# for 14/38, left camera is flipped and made negative
 left = left.drop("particle", axis=1)
+max_x_val = max(left["x"])
+min_x_val = min(left["x"])
+
+left["x"] = max_x_val - left["x"] + min_x_val
 left["x"] = left["x"] * -1
+
 combined = pd.concat([left, right])
 
 search_range = 45
@@ -67,79 +78,12 @@ t = tp.link(
     combined, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
 )
 
-pickle_path = "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240627/20240627-a01-RVH_tracks.pkl.gz"
+feather_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_bottom_tracks.feather"
+t.to_feather(feather_path)
 
-with gzip.open(pickle_path, "wb") as f:
-    print("Writing pickle file.")
-    pickle.dump(t, f)
-
-###########################################################
-
-right = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240619/20240619-a01-RVH_20240619_140433.24568709/20240619-a01-RVH_20240619_140433_tracks.pkl.gz"
-)
-left = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240619/20240619-a01-RVH_20240619_140433.24568744/20240619-a01-RVH_20240619_140433_tracks.pkl.gz"
-)
-
-# Fix for TypeError: 'float' object is not callable
-max_x_val = max(right["x"])
-min_x_val = min(right["x"])
-right["x"] = max_x_val - right["x"] + min_x_val - 475
-right = right[right["x"] >= -10]
-right["y"] = right["y"] - 125
-right = right.drop("particle", axis=1)
-
-left = left.drop("particle", axis=1)
-left["x"] = left["x"] * -1
-combined = pd.concat([left, right])
-
-search_range = 45
-memory = 25
-adaptive_stop = 30
-
-t = tp.link(
-    combined, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
-)
-
-pickle_path = "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240829/20240829-a01-RVH.pkl.gz"
-
-with gzip.open(pickle_path, "wb") as f:
-    print("Writing pickle file.")
-    pickle.dump(t, f)
-
-
-###########################################################
-
-right = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240619/20240619-a01-RVH_20240619_140433.24568709/20240619-a01-RVH_20240619_140433_tracks.pkl.gz"
-)
-left = pd.read_pickle(
-    "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240619/20240619-a01-RVH_20240619_140433.24568744/20240619-a01-RVH_20240619_140433_tracks.pkl.gz"
-)
-
-# Fix for TypeError: 'float' object is not callable
-max_x_val = max(right["x"])
-min_x_val = min(right["x"])
-right["x"] = max_x_val - right["x"] + min_x_val - 475
-right = right[right["x"] >= -10]
-right["y"] = right["y"] - 125
-right = right.drop("particle", axis=1)
-
-left = left.drop("particle", axis=1)
-left["x"] = left["x"] * -1
-combined = pd.concat([left, right])
-
-search_range = 45
-memory = 25
-adaptive_stop = 30
-
-t = tp.link(
-    combined, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
-)
-
-pickle_path = "/Users/njwheeler/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_sensation/invision/double_agar/20240829/20240829-a01-RVH.pkl.gz"
-
-with gzip.open(pickle_path, "wb") as f:
-    print("Writing pickle file.")
-    pickle.dump(t, f)
+pdf_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_bottom_tracks.pdf"
+fig = plt.figure()
+ax = plt.gca()
+t1 = tp.filter_stubs(t, 200)
+tp.plot_traj(t1, ax=ax)
+fig.savefig(pdf_path)

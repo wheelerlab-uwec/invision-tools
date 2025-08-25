@@ -334,13 +334,18 @@ fit_model_interaction <- function(
       tidy_out <- tidy_out %>% mutate(note = note)
     }
 
-    return(tidy_out)
+    return(list(
+      results = tidy_out,
+      model = model,
+      model_type = class(model)[1],
+      note = ifelse(is.na(note), "standard", note)
+    ))
   }
 
   tryCatch(
     {
       # Check that all required columns exist
-      required_cols <- c(feature, fixed_effects, "date", "video", "particle")
+      required_cols <- c(feature, fixed_effects, "date", "particle")
       missing_cols <- setdiff(required_cols, names(data))
       if (length(missing_cols) > 0) {
         stop(paste("Missing columns:", paste(missing_cols, collapse = ", ")))
@@ -360,8 +365,8 @@ fit_model_interaction <- function(
           {
             model <- lme(
               fixed = reformulate(fixed_part, response = feature),
-              random = ~ 1 | date / video / particle,
-              correlation = corAR1(form = ~ 1 | date / video / particle),
+              random = ~ 1 | date / particle,
+              correlation = corAR1(form = ~ 1 | date / particle),
               data = clean_data,
               control = lmeControl(opt = "optim")
             )
@@ -386,7 +391,7 @@ fit_model_interaction <- function(
       # Standard lmer approach (fallback or if temporal correlation not requested)
       model <- lmer(
         reformulate(
-          paste(fixed_part, "+ (1 | date/video/particle)"),
+          paste(fixed_part, "+ (1 | date/particle)"),
           response = feature
         ),
         data = clean_data,
@@ -410,7 +415,6 @@ fit_model_interaction <- function(
             feature,
             fixed_effects,
             "date",
-            "video",
             "particle"
           )
           clean_data <- data %>%
@@ -418,7 +422,7 @@ fit_model_interaction <- function(
 
           model <- lmer(
             reformulate(
-              paste(fixed_part, "+ (1 | date/video/particle)"),
+              paste(fixed_part, "+ (1 | date/particle)"),
               response = feature
             ),
             data = clean_data,
@@ -475,179 +479,25 @@ fit_model_interaction <- function(
                   )
                 },
                 error = function(e4) {
-                  # Return a minimal tibble with NA values when all models fail
-                  tibble(
-                    effect = "fixed",
-                    term = paste0(fixed_effects[1], "NA"),
-                    estimate = NA_real_,
-                    std.error = NA_real_,
-                    statistic = NA_real_,
-                    df = NA_real_,
-                    p.value = NA_real_,
-                    feature = feature,
+                  # Return a minimal list with NA values when all models fail
+                  list(
+                    results = tibble(
+                      effect = "fixed",
+                      term = paste0(fixed_effects[1], "NA"),
+                      estimate = NA_real_,
+                      std.error = NA_real_,
+                      statistic = NA_real_,
+                      df = NA_real_,
+                      p.value = NA_real_,
+                      feature = feature,
+                      note = "model_failed"
+                    ),
+                    model = NULL,
+                    model_type = "failed",
                     note = "model_failed"
                   )
                 }
               )
-            }
-          )
-        }
-      )
-    }
-  )
-}
-
-
-fit_model_screenchip <- function(
-  feature,
-  data,
-  fixed_effects,
-  control_level = "No Drug"
-) {
-  data <- data %>%
-    mutate(treatment = relevel(factor(treatment), ref = control_level))
-
-  # Build fixed effects formula with interactions
-  if (length(fixed_effects) == 1) {
-    fixed_part <- fixed_effects[1]
-  } else {
-    main_effects <- paste(fixed_effects, collapse = " + ")
-    interactions <- paste(fixed_effects, collapse = " * ")
-    fixed_part <- interactions
-  }
-
-  formula <- reformulate(
-    paste(fixed_part, "+ (1 | date/screenchip/well/particle)"),
-    response = feature
-  )
-
-  # Strategy 1: Try original model
-  tryCatch(
-    {
-      clean_data <- data %>%
-        filter(is.finite(.data[[feature]])) %>% # Remove Inf, -Inf, NaN
-        drop_na(all_of(c(
-          feature,
-          fixed_effects,
-          "date",
-          "screenchip",
-          "well",
-          "particle"
-        )))
-
-      # Check if we have enough data left
-      if (nrow(clean_data) < 1000) {
-        stop("Insufficient data after removing infinite values")
-      }
-
-      model <- withCallingHandlers(
-        lmer(
-          formula,
-          data = clean_data,
-          control = lmerControl(optimizer = "bobyqa")
-        ),
-        warning = function(w) {
-          if (grepl("rank deficient", w$message)) {
-            message(paste(
-              "Rank deficiency detected for",
-              feature,
-              "- dropping coefficients"
-            ))
-          } else {
-            warning(w)
-          }
-          invokeRestart("muffleWarning")
-        }
-      )
-
-      # Check if model is singular but still usable
-      if (isSingular(model)) {
-        warning(paste(
-          "Singular fit for",
-          feature,
-          "- random effects may be unreliable"
-        ))
-      }
-
-      return(
-        tidy(model, effects = "fixed") %>%
-          filter(str_detect(term, "^treatment")) %>%
-          mutate(
-            feature = feature,
-            comparison = paste0(term, " vs ", control_level)
-          )
-      )
-    },
-    error = function(e1) {
-      # Strategy 2: Try simplified random effects structure
-      tryCatch(
-        {
-          simple_formula <- reformulate(
-            paste(fixed_part, "+ (1 | date)"),
-            response = feature
-          )
-          clean_data <- data %>%
-            drop_na(all_of(c(feature, fixed_effects, "date")))
-
-          model <- lmer(
-            simple_formula,
-            data = clean_data,
-            control = lmerControl(optimizer = "bobyqa")
-          )
-
-          return(
-            tidy(model, effects = "fixed") %>%
-              filter(str_detect(term, "^treatment")) %>%
-              mutate(
-                feature = feature,
-                comparison = paste0(term, " vs ", control_level),
-                note = "simplified_random_effects"
-              )
-          )
-        },
-        error = function(e2) {
-          # Strategy 3: Fall back to fixed effects only (regular lm)
-          tryCatch(
-            {
-              fixed_formula <- reformulate(fixed_part, response = feature)
-              clean_data <- data %>%
-                drop_na(all_of(c(feature, fixed_effects)))
-
-              model <- lm(fixed_formula, data = clean_data)
-
-              return(
-                tidy(model) %>%
-                  filter(str_detect(term, "^treatment")) %>%
-                  mutate(
-                    feature = feature,
-                    comparison = paste0(term, " vs ", control_level),
-                    note = "fixed_effects_only",
-                    original_error = as.character(e1$message)
-                  )
-              )
-            },
-            error = function(e3) {
-              # Final fallback: return NA results
-              levels <- unique(data$treatment)
-              contrasts <- setdiff(levels, control_level)
-
-              return(tibble(
-                effect = "fixed",
-                term = paste0("treatment", contrasts),
-                estimate = NA_real_,
-                std.error = NA_real_,
-                statistic = NA_real_,
-                df = NA_real_,
-                p.value = NA_real_,
-                feature = feature,
-                comparison = paste0(
-                  "treatment",
-                  contrasts,
-                  " vs ",
-                  control_level
-                ),
-                note = "model_failed"
-              ))
             }
           )
         }
