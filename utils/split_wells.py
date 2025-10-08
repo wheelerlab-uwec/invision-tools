@@ -282,11 +282,11 @@ def validate_config(config: Dict[str, Any], config_path: str) -> Dict[str, Any]:
         if not os.path.exists(input_path):
             raise FileNotFoundError(f"Input file not found: {input_path}")
     else:
-        # Find first .pkl.gz file in config_dir
-        candidates = sorted(glob.glob(os.path.join(config_dir, "*.pkl.gz")))
+        # Find first .feather file in config_dir
+        candidates = sorted(glob.glob(os.path.join(config_dir, "*.feather")))
         if not candidates:
             raise FileNotFoundError(
-                f"No .pkl.gz file found in {config_dir} to use as input_path"
+                f"No .feather file found in {config_dir} to use as input_path"
             )
         input_path = candidates[0]
     validated["input_path"] = input_path
@@ -429,9 +429,15 @@ def main():
     print(f"Horizontal slope: {h_slope}")
     print(f"Vertical slope: {v_slope}")
 
-    # Load your particle tracking data
+    # Load your particle tracking data (expecting a Feather file)
     print(f"Loading data from {input_path}...")
-    df = pd.read_pickle(input_path, compression="gzip")
+    try:
+        df = pd.read_feather(input_path)
+    except Exception as e:
+        # Provide a helpful message if pyarrow/fastparquet isn't available or file is unreadable
+        raise RuntimeError(
+            f"Failed to read Feather file '{input_path}'. Ensure the file exists and that pandas has a suitable engine (pyarrow) installed. Original error: {e}"
+        )
 
     # Split the data by wells
     well_dfs = split_by_wells(
