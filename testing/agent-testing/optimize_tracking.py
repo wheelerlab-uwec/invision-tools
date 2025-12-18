@@ -616,6 +616,7 @@ def batch_parameter_search(video_path: str,
                            max_frames: Optional[int] = None) -> pd.DataFrame:
     """
     Test multiple parameter combinations and return results.
+    Load video once to avoid IO bottleneck.
     
     This is useful for an initial broad search.
     
@@ -631,8 +632,17 @@ def batch_parameter_search(video_path: str,
     """
     results_list = []
     
+    # Load video once
+    print(f"Loading video: {video_path}")
+    tracker = MiracidiaTracker(video_path, max_frames=max_frames)
+    tracker.load_video()
+    print(f"Video loaded, starting batch search...\n")
+    
     total_tests = len(diameter_range) * len(minmass_range)
     test_num = 0
+    
+    output_path = Path(output_dir)
+    output_path.mkdir(exist_ok=True, parents=True)
     
     for diameter in diameter_range:
         for minmass in minmass_range:
@@ -642,14 +652,33 @@ def batch_parameter_search(video_path: str,
             print(f"{'='*60}")
             
             try:
-                result = test_parameters(
-                    video_path=video_path,
+                # Detect features using pre-loaded frames
+                features = tracker.detect_features(
                     diameter=diameter,
                     minmass=minmass,
-                    output_dir=output_dir,
-                    save_plots=False,  # Save plots only for best
-                    max_frames=max_frames
+                    separation=None
                 )
+                
+                if len(features) == 0:
+                    results_list.append({
+                        'diameter': diameter,
+                        'minmass': minmass,
+                        'score': 0,
+                        'num_tracks': 0,
+                        'track_length_mean': 0,
+                        'long_track_ratio': 0,
+                        'noise_ratio': 0
+                    })
+                    print(f"No features detected")
+                    continue
+                
+                # Link trajectories
+                trajectories = tracker.link_trajectories(search_range=5, memory=3)
+                
+                # Evaluate quality
+                evaluator = TrackingEvaluator(trajectories)
+                result = evaluator.compute_all_metrics()
+                evaluator.print_summary()
                 
                 results_list.append({
                     'diameter': diameter,
@@ -661,22 +690,32 @@ def batch_parameter_search(video_path: str,
                     'noise_ratio': result['metrics'].get('noise_ratio', 0)
                 })
                 
+                # Save intermediate results after each test
+                results_df_temp = pd.DataFrame(results_list)
+                results_df_temp = results_df_temp.sort_values('score', ascending=False)
+                results_file = output_path / "batch_results.csv"
+                results_df_temp.to_csv(results_file, index=False)
+                
             except Exception as e:
                 print(f"ERROR: Test failed: {e}")
+                import traceback
+                traceback.print_exc()
                 results_list.append({
                     'diameter': diameter,
                     'minmass': minmass,
                     'score': 0,
+                    'num_tracks': 0,
+                    'track_length_mean': 0,
+                    'long_track_ratio': 0,
+                    'noise_ratio': 0,
                     'error': str(e)
                 })
     
-    # Create results DataFrame
+    # Create final results DataFrame
     results_df = pd.DataFrame(results_list)
     results_df = results_df.sort_values('score', ascending=False)
     
     # Save results
-    output_path = Path(output_dir)
-    output_path.mkdir(exist_ok=True, parents=True)
     results_file = output_path / "batch_results.csv"
     results_df.to_csv(results_file, index=False)
     
