@@ -65,7 +65,7 @@ def generate_tracks(df, input):
     if "miracidia" in input:
         search_range = 45
         memory = 25
-        adaptive_stop = 30
+        adaptive_stop = 15
     elif "mosquito" in input:
         search_range = 750
         memory = 100

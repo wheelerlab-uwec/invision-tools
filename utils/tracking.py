@@ -72,8 +72,9 @@ def track_batch(video, output):
         for frame in worm_arr:
             if i % chunk == 0:
                 print(f"Processing frame {i}")
-                print(f"Regenerating background using frames {i} to {i+chunk}.")
-                background = np.amax(worm_arr[i : i + chunk, :, :], axis=0)
+                print(
+                    f"Regenerating background using frames {i} to {i+chunk}.")
+                background = np.amax(worm_arr[i: i + chunk, :, :], axis=0)
                 save_path = Path(output, f"background_{chunk}.png")
                 cv2.imwrite(str(save_path), background)
             arr = process_frame(frame, background)
@@ -83,17 +84,19 @@ def track_batch(video, output):
                 cv2.imwrite(str(save_path), arr)
             i += 1
         if "miracidia" in output:
-            diameter = 35
-            minmass = 1200
-            noise_size = 2
+            diameter = 23
+            minmass = 550
+            noise_size = 1
             topn = None
             with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
-                tp.batch(worm_arr, diameter=diameter, minmass=minmass, topn=topn, noise_size=noise_size, output=s)
+                tp.batch(worm_arr, diameter=diameter, minmass=minmass,
+                         topn=topn, noise_size=noise_size, output=s)
         elif "mosquito" in output:
             diameter = 95
             minmass = 50000
             with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
-                tp.batch(worm_arr, diameter=diameter, minmass=minmass, output=s)
+                tp.batch(worm_arr, diameter=diameter,
+                         minmass=minmass, output=s)
         else:
             print("Something went wrong.")
     else:
@@ -103,12 +106,15 @@ def track_batch(video, output):
         with tp.PandasHDFStoreBig(Path(output, f"{base}.hdf5")) as s:
             tp.batch(worm_arr, diameter=diameter, minmass=minmass, output=s)
 
+
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Track objects in an InVision video.")
+    parser = argparse.ArgumentParser(
+        description="Track objects in an InVision video.")
 
     parser.add_argument("video", type=str, help="Path to the video.")
-    parser.add_argument("output", type=str, help="Path to the output directory.")
+    parser.add_argument("output", type=str,
+                        help="Path to the output directory.")
     # parser.add_argument('-l', '--left', type=int,
     #                     help='Number of cols to remove from the left.')
     # parser.add_argument('-r', '--right', type=int,
