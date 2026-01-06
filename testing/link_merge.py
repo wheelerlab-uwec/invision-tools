@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 #####################################
 
 right = pd.read_feather(
-    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.24568709/20250814a01sao_20250814_130939_tracks.feather"
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938.24568709/20251218a01bas_20251218_125938_tracks.feather"
 )
 left = pd.read_feather(
-    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.24568744/20250814a01sao_20250814_130939_tracks.feather"
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938.24568744/20251218a01bas_20251218_125938_tracks.feather"
 )
 
 # for 44/09, have to flip the right camera (09)
@@ -35,10 +35,10 @@ t = tp.link(
     combined, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
 )
 
-feather_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_top_tracks.feather"
+feather_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938_top_tracks.feather"
 t.to_feather(feather_path)
 
-pdf_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_top_tracks.pdf"
+pdf_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938_top_tracks.pdf"
 fig = plt.figure()
 ax = plt.gca()
 t1 = tp.filter_stubs(t, 200)
@@ -51,10 +51,10 @@ fig.savefig(pdf_path)
 #####################################
 
 right = pd.read_feather(
-    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.25128038/20250814a01sao_20250814_130939_tracks.feather"
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938.25128038/20251218a01bas_20251218_125938_tracks.feather"
 )
 left = pd.read_feather(
-    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814a01sao_20250814_130939.25112214/20250814a01sao_20250814_130939_tracks.feather"
+    "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938.25112214/20251218a01bas_20251218_125938_tracks.feather"
 )
 
 # for 14/38, right camera remains the same
@@ -78,10 +78,10 @@ t = tp.link(
     combined, search_range=search_range, memory=memory, adaptive_stop=adaptive_stop
 )
 
-feather_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_bottom_tracks.feather"
+feather_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938_bottom_tracks.feather"
 t.to_feather(feather_path)
 
-pdf_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/light_gradient_response/20250814/20250814a01sao_20250814_130939_bottom_tracks.pdf"
+pdf_path = "/Users/wheelenj/Library/CloudStorage/OneDrive-UW-EauClaire/WheelerLab/Data/project-miracidia_photosensation/red_blue/20251218a01bas_20251218_125938_bottom_tracks.pdf"
 fig = plt.figure()
 ax = plt.gca()
 t1 = tp.filter_stubs(t, 200)
