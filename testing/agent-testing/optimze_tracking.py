@@ -14,39 +14,80 @@ Or modify parameters directly in test_parameters() function for batch testing.
 import numpy as np
 import pandas as pd
 import trackpy as tp
-import pims
+import cv2
 import json
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Dict, Tuple, Optional
 import warnings
+import logging
+from datetime import datetime
 warnings.filterwarnings('ignore')
 
 
 class MiracidiaTracker:
     """Handles miracidia detection and trajectory linking."""
     
-    def __init__(self, video_path: str):
+    def __init__(self, video_path: str, max_frames: Optional[int] = None, downsample_factor: int = 1,
+                 backgrounds_dir: Optional[str] = None):
         """
         Initialize tracker with video file.
         
         Args:
             video_path: Path to video file (mp4, avi, etc.)
+            max_frames: Maximum number of frames to process (None = all)
+            downsample_factor: Factor to downsample images (1 = no downsampling, 2 = half size, etc.)
+            backgrounds_dir: Directory containing pre-computed backgrounds (None = generate on-the-fly)
         """
         self.video_path = Path(video_path)
-        self.frames = None
+        self.video_cap = None
+        self.total_frames = 0
         self.features = None
         self.trajectories = None
+        self.max_frames = max_frames
+        self.downsample_factor = downsample_factor
+        self.background_cache = {}  # Cache backgrounds by chunk index
+        self.backgrounds_dir = Path(backgrounds_dir) if backgrounds_dir else None
+        self.backgrounds_metadata = None
+        
+        # Load pre-computed backgrounds if available
+        if self.backgrounds_dir and self.backgrounds_dir.exists():
+            metadata_file = self.backgrounds_dir / 'backgrounds_metadata.json'
+            if metadata_file.exists():
+                with open(metadata_file, 'r') as f:
+                    self.backgrounds_metadata = json.load(f)
+                print(f"Loaded background metadata: {len(self.backgrounds_metadata['backgrounds'])} chunks")
         
     def load_video(self) -> None:
-        """Load video frames using PIMS."""
-        print(f"Loading video: {self.video_path}")
-        self.frames = pims.open(str(self.video_path))
-        print(f"Loaded {len(self.frames)} frames, shape: {self.frames.frame_shape}")
+        """Open video file using CV2 without loading all frames."""
+        print(f"Opening video: {self.video_path}")
+        self.video_cap = cv2.VideoCapture(str(self.video_path))
+        
+        if not self.video_cap.isOpened():
+            raise IOError(f"Cannot open video file: {self.video_path}")
+        
+        self.total_frames = int(self.video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Limit frames if specified
+        if self.max_frames is not None:
+            actual_frames = min(self.max_frames, self.total_frames)
+            print(f"Will process {actual_frames} frames (out of {self.total_frames} total)")
+        else:
+            actual_frames = self.total_frames
+            print(f"Will process all {actual_frames} frames")
+    
+    def get_frame(self, frame_idx: int) -> Optional[np.ndarray]:
+        """Get a specific frame from the video."""
+        self.video_cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = self.video_cap.read()
+        if ret:
+            return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return None
         
     def subtract_background(self, frame: np.ndarray, background: np.ndarray) -> np.ndarray:
         """
-        Subtract background from frame.
+        Subtract background from frame using absolute difference.
+        This matches the production code behavior.
         
         Args:
             frame: Current frame
@@ -55,35 +96,75 @@ class MiracidiaTracker:
         Returns:
             Background-subtracted frame
         """
-        # Ensure same dtype for subtraction
-        frame_float = frame.astype(float)
-        bg_float = background.astype(float)
-        subtracted = frame_float - bg_float
+        # Use absolute difference like production code
+        # This captures both bright objects moving over dark background
+        # and dark objects moving over bright background
+        subtracted = np.absolute(frame.astype(np.int16) - background.astype(np.int16))
         
         # Clip to valid range
         subtracted = np.clip(subtracted, 0, 255)
         return subtracted.astype(np.uint8)
     
-    def generate_background(self, start_frame: int = 0, chunk_size: int = 25) -> np.ndarray:
+    def generate_background(self, start_frame: int = 0, chunk_size: int = 25, use_max: bool = True) -> np.ndarray:
         """
-        Generate background by maximum projection over chunk of frames.
+        Generate or load background by median/max projection over chunk of frames.
         
         Args:
             start_frame: Starting frame index
             chunk_size: Number of frames to use for background
+            use_max: Use maximum instead of median (better for removing stationary bright objects)
             
         Returns:
             Background image
         """
-        end_frame = min(start_frame + chunk_size, len(self.frames))
-        chunk = [self.frames[i] for i in range(start_frame, end_frame)]
+        # Calculate chunk index
+        chunk_idx = start_frame // chunk_size
         
-        # Handle grayscale vs color
-        if len(chunk[0].shape) == 3:
-            # Convert to grayscale if color
-            chunk = [np.mean(frame, axis=2).astype(np.uint8) for frame in chunk]
+        # Try to load pre-computed background first
+        if self.backgrounds_metadata is not None and use_max:
+            chunk_info = self.backgrounds_metadata['backgrounds'].get(str(chunk_idx))
+            if chunk_info:
+                bg_file = self.backgrounds_dir / chunk_info['filename']
+                if bg_file.exists():
+                    background = np.load(bg_file)
+                    return background
         
-        background = np.max(chunk, axis=0)
+        # Check cache
+        cache_key = (start_frame, chunk_size, use_max, self.downsample_factor)
+        if cache_key in self.background_cache:
+            return self.background_cache[cache_key]
+        
+        # Generate background on-the-fly (fallback)
+        print(f"  Generating background for chunk {chunk_idx} on-the-fly...")
+        end_frame = min(start_frame + chunk_size, self.total_frames)
+        if self.max_frames is not None:
+            end_frame = min(end_frame, self.max_frames)
+        
+        chunk = []
+        for i in range(start_frame, end_frame):
+            frame = self.get_frame(i)
+            if frame is None:
+                continue
+            
+            # Frame is already grayscale from get_frame()
+            # Apply downsampling if needed
+            if self.downsample_factor > 1:
+                from skimage.transform import rescale
+                frame = rescale(frame, 1.0 / self.downsample_factor, anti_aliasing=True, preserve_range=True).astype(np.uint8)
+            
+            chunk.append(frame)
+        
+        if len(chunk) == 0:
+            raise ValueError(f"No frames loaded for background generation (start={start_frame}, end={end_frame})")
+        
+        # Use max projection to capture stationary bright objects as background
+        if use_max:
+            background = np.max(chunk, axis=0).astype(np.uint8)
+        else:
+            background = np.median(chunk, axis=0).astype(np.uint8)
+        
+        # Cache the result
+        self.background_cache[cache_key] = background
         return background
     
     def detect_features(self, 
@@ -96,10 +177,12 @@ class MiracidiaTracker:
                        threshold: Optional[float] = None,
                        percentile: float = 64,
                        invert: bool = False,
-                       chunk_size: int = 25) -> pd.DataFrame:
+                       use_background_subtraction: bool = True,
+                       chunk_size: int = 25,
+                       use_max_projection: bool = True) -> pd.DataFrame:
         """
         Detect features (miracidia) in all frames using TrackPy.
-        Uses rolling background subtraction.
+        Can optionally use rolling background subtraction.
         
         Args:
             diameter: Approximate feature size (odd integer)
@@ -110,66 +193,77 @@ class MiracidiaTracker:
             smoothing_size: Size for Gaussian smoothing
             threshold: Brightness threshold (None = auto)
             percentile: Percentile for automatic threshold
-            invert: Invert image before processing
-            chunk_size: Frames per background generation
+            invert: Invert image before processing (True for dark objects)
+            use_background_subtraction: Use rolling window background subtraction (default True)
+            chunk_size: Frames per background generation (default 25)
+            use_max_projection: Use max instead of median for background (default True)
             
         Returns:
             DataFrame with detected features
         """
         print(f"\nDetecting features with parameters:")
-        print(f"  diameter={diameter}, minmass={minmass}, separation={separation}")
+        print(f"  diameter={diameter}, minmass={minmass}, separation={separation}, invert={invert}")
+        print(f"  background_subtraction={use_background_subtraction}, use_max_projection={use_max_projection}, chunk_size={chunk_size}")
         
         if separation is None:
             separation = diameter + 1
         
         all_features = []
-        num_chunks = int(np.ceil(len(self.frames) / chunk_size))
         
-        for chunk_idx in range(num_chunks):
-            start_frame = chunk_idx * chunk_size
-            end_frame = min((chunk_idx + 1) * chunk_size, len(self.frames))
+        # Determine how many frames to process
+        total_frames = self.total_frames if self.max_frames is None else min(self.max_frames, self.total_frames)
+        
+        # Process frames one at a time (no memory loading)
+        for frame_idx in range(total_frames):
+            frame = self.get_frame(frame_idx)
             
-            # Generate background for this chunk
-            background = self.generate_background(start_frame, chunk_size)
+            if frame is None:
+                print(f"  Warning: Could not read frame {frame_idx}")
+                continue
             
-            # Process each frame in chunk
-            for frame_idx in range(start_frame, end_frame):
-                frame = self.frames[frame_idx]
-                
-                # Convert to grayscale if needed
-                if len(frame.shape) == 3:
-                    frame = np.mean(frame, axis=2).astype(np.uint8)
-                
-                # Subtract background
+            # Frame is already grayscale from get_frame()
+            
+            # Downsample if requested
+            if self.downsample_factor > 1:
+                from skimage.transform import rescale
+                frame = rescale(frame, 1.0 / self.downsample_factor, anti_aliasing=True, preserve_range=True).astype(np.uint8)
+            
+            # Optionally subtract background (now enabled by default with rolling window)
+            if use_background_subtraction:
+                # Use rolling window: regenerate background every chunk_size frames
+                chunk_idx = frame_idx // chunk_size
+                background = self.generate_background(chunk_idx * chunk_size, chunk_size, use_max=use_max_projection)
                 processed = self.subtract_background(frame, background)
+            else:
+                processed = frame
+            
+            # Detect features
+            try:
+                features = tp.locate(
+                    processed,
+                    diameter=diameter,
+                    minmass=minmass,
+                    separation=separation,
+                    maxsize=maxsize,
+                    noise_size=noise_size,
+                    smoothing_size=smoothing_size,
+                    threshold=threshold,
+                    percentile=percentile,
+                    invert=invert
+                )
                 
-                # Detect features
-                try:
-                    features = tp.locate(
-                        processed,
-                        diameter=diameter,
-                        minmass=minmass,
-                        separation=separation,
-                        maxsize=maxsize,
-                        noise_size=noise_size,
-                        smoothing_size=smoothing_size,
-                        threshold=threshold,
-                        percentile=percentile,
-                        invert=invert
-                    )
+                if len(features) > 0:
+                    features['frame'] = frame_idx
+                    all_features.append(features)
                     
-                    if len(features) > 0:
-                        features['frame'] = frame_idx
-                        all_features.append(features)
-                        
-                except Exception as e:
-                    print(f"  Warning: Frame {frame_idx} failed: {e}")
-                    continue
-                
-                if frame_idx % 100 == 0:
-                    total_found = sum(len(f) for f in all_features)
-                    print(f"  Processed frame {frame_idx}/{len(self.frames)}, "
-                          f"total features: {total_found}")
+            except Exception as e:
+                print(f"  Warning: Frame {frame_idx} failed: {e}")
+                continue
+            
+            if frame_idx % 100 == 0:
+                total_found = sum(len(f) for f in all_features)
+                print(f"  Processed frame {frame_idx}/{total_frames}, "
+                      f"total features: {total_found}")
         
         if all_features:
             self.features = pd.concat(all_features, ignore_index=True)
@@ -272,7 +366,7 @@ class TrackingEvaluator:
         }
     
     def _compute_track_lengths(self) -> None:
-        """Compute track length distribution metrics."""
+        """Compute track length distribution metrics with movement analysis."""
         track_lengths = self.trajectories.groupby('particle').size()
         
         self.metrics['track_length_mean'] = track_lengths.mean()
@@ -280,15 +374,51 @@ class TrackingEvaluator:
         self.metrics['track_length_std'] = track_lengths.std()
         self.metrics['track_length_max'] = track_lengths.max()
         
-        # Categorize tracks
+        # Categorize tracks by length
         self.metrics['very_short_tracks'] = (track_lengths < 5).sum()
         self.metrics['short_tracks'] = ((track_lengths >= 5) & (track_lengths < 20)).sum()
         self.metrics['medium_tracks'] = ((track_lengths >= 20) & (track_lengths < 40)).sum()
         self.metrics['long_tracks'] = (track_lengths >= 40).sum()
         
+        # NEW: Analyze movement for long tracks
+        moving_long_tracks = 0
+        stationary_long_tracks = 0
+        
+        for particle_id in self.trajectories['particle'].unique():
+            track = self.trajectories[self.trajectories['particle'] == particle_id].sort_values('frame')
+            track_length = len(track)
+            
+            if track_length >= 40:  # Only analyze long tracks
+                # Calculate total displacement (start to end)
+                start_x, start_y = track.iloc[0]['x'], track.iloc[0]['y']
+                end_x, end_y = track.iloc[-1]['x'], track.iloc[-1]['y']
+                total_displacement = np.sqrt((end_x - start_x)**2 + (end_y - start_y)**2)
+                
+                # Calculate mean velocity
+                if track_length > 1:
+                    dx = track['x'].diff()
+                    dy = track['y'].diff()
+                    displacements = np.sqrt(dx**2 + dy**2)
+                    mean_velocity = displacements.mean()
+                else:
+                    mean_velocity = 0
+                
+                # Classify as moving if EITHER:
+                # - Total displacement > 10 pixels (moved substantially), OR
+                # - Mean velocity > 0.5 pixels/frame (consistent movement)
+                if total_displacement > 10 or mean_velocity > 0.5:
+                    moving_long_tracks += 1
+                else:
+                    stationary_long_tracks += 1
+        
+        # Store movement metrics
+        self.metrics['long_tracks_moving'] = moving_long_tracks
+        self.metrics['long_tracks_stationary'] = stationary_long_tracks
+        
         # Ratios
         total_tracks = len(track_lengths)
         self.metrics['long_track_ratio'] = self.metrics['long_tracks'] / total_tracks if total_tracks > 0 else 0
+        self.metrics['moving_long_track_ratio'] = moving_long_tracks / total_tracks if total_tracks > 0 else 0
         self.metrics['noise_ratio'] = self.metrics['very_short_tracks'] / total_tracks if total_tracks > 0 else 0
         
     def _compute_motion_metrics(self) -> None:
@@ -370,7 +500,7 @@ class TrackingEvaluator:
         Higher is better.
         
         Weights are tuned for miracidia tracking goals:
-        - Longer tracks are better
+        - Longer MOVING tracks are better (stationary tracks are penalized)
         - Smooth motion is better
         - Less noise (very short tracks) is better
         - Good frame coverage is better
@@ -383,8 +513,12 @@ class TrackingEvaluator:
         # Mean track length of 40+ frames is excellent
         length_score = min(m['track_length_mean'] / 40 * 100, 100)
         
-        # 2. Long track ratio (0-100)
-        long_ratio_score = m['long_track_ratio'] * 100
+        # 2. MOVING long track ratio (0-100) - KEY CHANGE!
+        # Use moving_long_track_ratio instead of long_track_ratio
+        moving_ratio_score = m.get('moving_long_track_ratio', 0) * 100
+        
+        # 3. Penalty for stationary tracks
+        stationary_penalty = -m.get('long_tracks_stationary', 0) * 2  # Penalize each stationary track
         
         # 3. Noise penalty (0-100, higher is better)
         # Less than 20% noise is good
@@ -408,21 +542,23 @@ class TrackingEvaluator:
         coverage_score = m['frame_coverage'] * 100
         
         # Weighted composite (adjust weights based on priorities)
+        # UPDATED: Prioritize moving tracks!
         weights = {
-            'length': 0.25,
-            'long_ratio': 0.25,
+            'length': 0.20,
+            'moving_ratio': 0.35,  # INCREASED - most important!
             'noise': 0.15,
             'smooth': 0.15,
-            'coverage': 0.20
+            'coverage': 0.15
         }
         
         score = (
             length_score * weights['length'] +
-            long_ratio_score * weights['long_ratio'] +
+            moving_ratio_score * weights['moving_ratio'] +
             noise_score * weights['noise'] +
             smooth_score * weights['smooth'] +
             coverage_score * weights['coverage'] +
-            motion_penalty
+            motion_penalty +
+            stationary_penalty
         )
         
         # Ensure non-negative
@@ -476,7 +612,10 @@ def test_parameters(video_path: str,
                    search_range: float = 5,
                    memory: int = 3,
                    save_plots: bool = True,
-                   output_dir: str = "./tracking_results") -> Dict:
+                   output_dir: str = "./tracking_results",
+                   max_frames: Optional[int] = None,
+                   run_version: Optional[str] = None,
+                   downsample_factor: int = 1) -> Dict:
     """
     Test a set of tracking parameters and return quality metrics.
     
@@ -491,6 +630,8 @@ def test_parameters(video_path: str,
         memory: Frames to remember lost features
         save_plots: Whether to save trajectory plots
         output_dir: Directory for outputs
+        max_frames: Maximum number of frames to process (None = all)
+        run_version: Version string for this run (None = timestamp)
         
     Returns:
         Dictionary with score and metrics
@@ -499,8 +640,29 @@ def test_parameters(video_path: str,
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True, parents=True)
     
-    # Initialize tracker
-    tracker = MiracidiaTracker(video_path)
+    # Generate version string
+    if run_version is None:
+        run_version = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Setup logging
+    log_file = output_path / f"log_{run_version}_d{diameter}_m{int(minmass)}.txt"
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ],
+        force=True
+    )
+    
+    logging.info(f"Starting optimization run: {run_version}")
+    logging.info(f"Parameters: diameter={diameter}, minmass={minmass}, separation={separation}, "
+                f"search_range={search_range}, memory={memory}, max_frames={max_frames}, downsample={downsample_factor}")
+    
+    # Initialize tracker with pre-computed backgrounds
+    tracker = MiracidiaTracker(video_path, max_frames=max_frames, downsample_factor=downsample_factor,
+                               backgrounds_dir="./backgrounds")
     tracker.load_video()
     
     # Detect features
@@ -547,11 +709,37 @@ def test_parameters(video_path: str,
     if save_plots and len(trajectories) > 0:
         save_trajectory_plots(trajectories, output_path, diameter, minmass)
     
-    # Save results to JSON
-    results_file = output_path / f"results_d{diameter}_m{int(minmass)}.json"
+    # Save versioned results to JSON
+    results_file = output_path / f"results_{run_version}_d{diameter}_m{int(minmass)}.json"
+    results['run_version'] = run_version
+    results['timestamp'] = datetime.now().isoformat()
+    results['max_frames_used'] = max_frames
+    
+    # Convert numpy types to Python types for JSON serialization
+    def convert_to_python_types(obj):
+        if isinstance(obj, dict):
+            return {k: convert_to_python_types(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_python_types(v) for v in obj]
+        elif isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj
+    
+    results = convert_to_python_types(results)
+    
     with open(results_file, 'w') as f:
         json.dump(results, f, indent=2)
-    print(f"\nResults saved to: {results_file}")
+    
+    logging.info(f"Results saved to: {results_file}")
+    logging.info(f"Final score: {results.get('score', 0):.2f}")
+    
+    # Cleanup logging handlers
+    for handler in logging.root.handlers[:]:
+        handler.close()
+        logging.root.removeHandler(handler)
     
     return results
 
@@ -597,7 +785,10 @@ def save_trajectory_plots(trajectories: pd.DataFrame,
 def batch_parameter_search(video_path: str,
                            diameter_range: list = [7, 9, 11, 13, 15],
                            minmass_range: list = [50, 100, 200, 300, 500],
-                           output_dir: str = "./batch_results") -> pd.DataFrame:
+                           output_dir: str = "./batch_results",
+                           max_frames: Optional[int] = None,
+                           run_version: Optional[str] = None,
+                           downsample_factor: int = 1) -> pd.DataFrame:
     """
     Test multiple parameter combinations and return results.
     
@@ -608,10 +799,15 @@ def batch_parameter_search(video_path: str,
         diameter_range: List of diameter values to test
         minmass_range: List of minmass values to test
         output_dir: Directory for outputs
+        max_frames: Maximum number of frames to process
+        run_version: Version string for this batch run
         
     Returns:
         DataFrame with all results sorted by score
     """
+    if run_version is None:
+        run_version = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
     results_list = []
     
     total_tests = len(diameter_range) * len(minmass_range)
@@ -630,7 +826,10 @@ def batch_parameter_search(video_path: str,
                     diameter=diameter,
                     minmass=minmass,
                     output_dir=output_dir,
-                    save_plots=False  # Save plots only for best
+                    save_plots=False,  # Save plots only for best
+                    max_frames=max_frames,
+                    run_version=f"{run_version}_batch",
+                    downsample_factor=downsample_factor
                 )
                 
                 results_list.append({
@@ -659,7 +858,7 @@ def batch_parameter_search(video_path: str,
     # Save results
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True, parents=True)
-    results_file = output_path / "batch_results.csv"
+    results_file = output_path / f"batch_results_{run_version}.csv"
     results_df.to_csv(results_file, index=False)
     
     print(f"\n{'='*60}")
