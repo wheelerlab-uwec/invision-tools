@@ -510,7 +510,7 @@ fit_model_numeric <- function(
   feature,
   data,
   fixed_effects = "x",
-  random_effects = c("date", "particle"),  # e.g. c("date", "particle") for date/particle nesting
+  random_effects = c("date", "particle"), # e.g. c("date", "particle") for date/particle nesting
   use_temporal_correlation = TRUE
 ) {
   require(lme4)
@@ -571,11 +571,16 @@ fit_model_numeric <- function(
               control = lmeControl(opt = "optim")
             )
 
-            return(extract_model_results(model, feature, note = "temporal_correlation"))
+            return(extract_model_results(
+              model,
+              feature,
+              note = "temporal_correlation"
+            ))
           },
           error = function(e_temporal) {
             warning(paste(
-              "Temporal correlation model failed for", feature,
+              "Temporal correlation model failed for",
+              feature,
               "- falling back to standard LMM"
             ))
           }
@@ -584,13 +589,20 @@ fit_model_numeric <- function(
 
       # Standard lmer fallback
       model <- lmer(
-        reformulate(paste(fixed_part, "+", random_lmer_str), response = feature),
+        reformulate(
+          paste(fixed_part, "+", random_lmer_str),
+          response = feature
+        ),
         data = clean_data,
         control = lmerControl(optimizer = "bobyqa")
       )
 
       if (isSingular(model)) {
-        warning(paste("Singular fit for", feature, "- random effects may be unreliable"))
+        warning(paste(
+          "Singular fit for",
+          feature,
+          "- random effects may be unreliable"
+        ))
       }
 
       extract_model_results(model, feature)
@@ -602,13 +614,20 @@ fit_model_numeric <- function(
           clean_data <- data %>% drop_na(all_of(required_cols))
 
           model <- lmer(
-            reformulate(paste(fixed_part, "+", random_lmer_str), response = feature),
+            reformulate(
+              paste(fixed_part, "+", random_lmer_str),
+              response = feature
+            ),
             data = clean_data,
             control = lmerControl(optimizer = "bobyqa")
           )
 
           if (isSingular(model)) {
-            warning(paste("Singular fit for", feature, "after cleaning - random effects may be unreliable"))
+            warning(paste(
+              "Singular fit for",
+              feature,
+              "after cleaning - random effects may be unreliable"
+            ))
           }
 
           extract_model_results(model, feature)
@@ -618,13 +637,24 @@ fit_model_numeric <- function(
             {
               # Simplified: only top-level random effect
               top_level_re <- paste0("(1 | ", random_effects[1], ")")
-              simple_formula <- reformulate(paste(fixed_part, "+", top_level_re), response = feature)
+              simple_formula <- reformulate(
+                paste(fixed_part, "+", top_level_re),
+                response = feature
+              )
               required_cols <- c(feature, fixed_effects, random_effects[1])
               clean_data <- data %>% drop_na(all_of(required_cols))
 
-              model <- lmer(simple_formula, data = clean_data, control = lmerControl(optimizer = "bobyqa"))
+              model <- lmer(
+                simple_formula,
+                data = clean_data,
+                control = lmerControl(optimizer = "bobyqa")
+              )
 
-              extract_model_results(model, feature, note = "simplified_random_effects")
+              extract_model_results(
+                model,
+                feature,
+                note = "simplified_random_effects"
+              )
             },
             error = function(e3) {
               tryCatch(
@@ -635,7 +665,11 @@ fit_model_numeric <- function(
 
                   model <- lm(fixed_formula, data = clean_data)
 
-                  extract_model_results(model, feature, note = "fixed_effects_only")
+                  extract_model_results(
+                    model,
+                    feature,
+                    note = "fixed_effects_only"
+                  )
                 },
                 error = function(e4) {
                   list(
@@ -656,6 +690,164 @@ fit_model_numeric <- function(
                   )
                 }
               )
+            }
+          )
+        }
+      )
+    }
+  )
+}
+
+fit_model_screenchip <- function(
+  feature,
+  data,
+  fixed_effects,
+  control_level = "No Drug"
+) {
+  data <- data %>%
+    mutate(treatment = relevel(factor(treatment), ref = control_level))
+
+  # Build fixed effects formula with interactions
+  if (length(fixed_effects) == 1) {
+    fixed_part <- fixed_effects[1]
+  } else {
+    main_effects <- paste(fixed_effects, collapse = " + ")
+    interactions <- paste(fixed_effects, collapse = " * ")
+    fixed_part <- interactions
+  }
+
+  formula <- reformulate(
+    paste(fixed_part, "+ (1 | date/screenchip/well/particle)"),
+    response = feature
+  )
+
+  # Strategy 1: Try original model
+  tryCatch(
+    {
+      clean_data <- data %>%
+        filter(is.finite(.data[[feature]])) %>% # Remove Inf, -Inf, NaN
+        drop_na(all_of(c(
+          feature,
+          fixed_effects,
+          "date",
+          "screenchip",
+          "well",
+          "particle"
+        )))
+
+      # Check if we have enough data left
+      if (nrow(clean_data) < 1000) {
+        stop("Insufficient data after removing infinite values")
+      }
+
+      model <- withCallingHandlers(
+        lmer(
+          formula,
+          data = clean_data,
+          control = lmerControl(optimizer = "bobyqa")
+        ),
+        warning = function(w) {
+          if (grepl("rank deficient", w$message)) {
+            message(paste(
+              "Rank deficiency detected for",
+              feature,
+              "- dropping coefficients"
+            ))
+          } else {
+            warning(w)
+          }
+          invokeRestart("muffleWarning")
+        }
+      )
+
+      # Check if model is singular but still usable
+      if (isSingular(model)) {
+        warning(paste(
+          "Singular fit for",
+          feature,
+          "- random effects may be unreliable"
+        ))
+      }
+
+      return(
+        tidy(model, effects = "fixed") %>%
+          filter(str_detect(term, "^treatment")) %>%
+          mutate(
+            feature = feature,
+            comparison = paste0(term, " vs ", control_level)
+          )
+      )
+    },
+    error = function(e1) {
+      # Strategy 2: Try simplified random effects structure
+      tryCatch(
+        {
+          simple_formula <- reformulate(
+            paste(fixed_part, "+ (1 | date)"),
+            response = feature
+          )
+          clean_data <- data %>%
+            drop_na(all_of(c(feature, fixed_effects, "date")))
+
+          model <- lmer(
+            simple_formula,
+            data = clean_data,
+            control = lmerControl(optimizer = "bobyqa")
+          )
+
+          return(
+            tidy(model, effects = "fixed") %>%
+              filter(str_detect(term, "^treatment")) %>%
+              mutate(
+                feature = feature,
+                comparison = paste0(term, " vs ", control_level),
+                note = "simplified_random_effects"
+              )
+          )
+        },
+        error = function(e2) {
+          # Strategy 3: Fall back to fixed effects only (regular lm)
+          tryCatch(
+            {
+              fixed_formula <- reformulate(fixed_part, response = feature)
+              clean_data <- data %>%
+                drop_na(all_of(c(feature, fixed_effects)))
+
+              model <- lm(fixed_formula, data = clean_data)
+
+              return(
+                tidy(model) %>%
+                  filter(str_detect(term, "^treatment")) %>%
+                  mutate(
+                    feature = feature,
+                    comparison = paste0(term, " vs ", control_level),
+                    note = "fixed_effects_only",
+                    original_error = as.character(e1$message)
+                  )
+              )
+            },
+            error = function(e3) {
+              # Final fallback: return NA results
+              levels <- unique(data$treatment)
+              contrasts <- setdiff(levels, control_level)
+
+              return(tibble(
+                effect = "fixed",
+                term = paste0("treatment", contrasts),
+                estimate = NA_real_,
+                std.error = NA_real_,
+                statistic = NA_real_,
+                df = NA_real_,
+                p.value = NA_real_,
+                feature = feature,
+                comparison = paste0(
+                  "treatment",
+                  contrasts,
+                  " vs ",
+                  control_level
+                ),
+                note = "model_failed"
+              ))
             }
           )
         }
