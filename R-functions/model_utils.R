@@ -505,3 +505,161 @@ fit_model_interaction <- function(
     }
   )
 }
+
+fit_model_numeric <- function(
+  feature,
+  data,
+  fixed_effects = "x",
+  random_effects = c("date", "particle"),  # e.g. c("date", "particle") for date/particle nesting
+  use_temporal_correlation = TRUE
+) {
+  require(lme4)
+  require(nlme)
+  require(broom)
+  require(broom.mixed)
+  require(dplyr)
+
+  fixed_part <- paste(fixed_effects, collapse = " + ")
+
+  # Build random effects strings from the hierarchy
+  # e.g. c("date", "particle") -> "date/particle"
+  random_slope_str <- paste(random_effects, collapse = "/")
+  random_lme_formula <- as.formula(paste("~ 1 |", random_slope_str))
+  random_lmer_str <- paste0("(1 | ", random_slope_str, ")")
+
+  extract_model_results <- function(model, feature, note = NA_character_) {
+    tidy_out <- tidy(model, effects = "fixed") %>%
+      mutate(feature = feature)
+
+    if (!is.na(note)) {
+      tidy_out <- tidy_out %>% mutate(note = note)
+    }
+
+    return(list(
+      results = tidy_out,
+      model = model,
+      model_type = class(model)[1],
+      note = ifelse(is.na(note), "standard", note)
+    ))
+  }
+
+  tryCatch(
+    {
+      required_cols <- c(feature, fixed_effects, random_effects)
+      missing_cols <- setdiff(required_cols, names(data))
+      if (length(missing_cols) > 0) {
+        stop(paste("Missing columns:", paste(missing_cols, collapse = ", ")))
+      }
+
+      clean_data <- data %>%
+        filter(is.finite(.data[[feature]])) %>%
+        drop_na(all_of(required_cols))
+
+      if (nrow(clean_data) < 1000) {
+        stop("Insufficient data after removing infinite values")
+      }
+
+      # Try temporal correlation model first
+      if (use_temporal_correlation) {
+        tryCatch(
+          {
+            model <- lme(
+              fixed = reformulate(fixed_part, response = feature),
+              random = random_lme_formula,
+              correlation = corAR1(form = random_lme_formula),
+              data = clean_data,
+              control = lmeControl(opt = "optim")
+            )
+
+            return(extract_model_results(model, feature, note = "temporal_correlation"))
+          },
+          error = function(e_temporal) {
+            warning(paste(
+              "Temporal correlation model failed for", feature,
+              "- falling back to standard LMM"
+            ))
+          }
+        )
+      }
+
+      # Standard lmer fallback
+      model <- lmer(
+        reformulate(paste(fixed_part, "+", random_lmer_str), response = feature),
+        data = clean_data,
+        control = lmerControl(optimizer = "bobyqa")
+      )
+
+      if (isSingular(model)) {
+        warning(paste("Singular fit for", feature, "- random effects may be unreliable"))
+      }
+
+      extract_model_results(model, feature)
+    },
+    error = function(e1) {
+      tryCatch(
+        {
+          required_cols <- c(feature, fixed_effects, random_effects)
+          clean_data <- data %>% drop_na(all_of(required_cols))
+
+          model <- lmer(
+            reformulate(paste(fixed_part, "+", random_lmer_str), response = feature),
+            data = clean_data,
+            control = lmerControl(optimizer = "bobyqa")
+          )
+
+          if (isSingular(model)) {
+            warning(paste("Singular fit for", feature, "after cleaning - random effects may be unreliable"))
+          }
+
+          extract_model_results(model, feature)
+        },
+        error = function(e2) {
+          tryCatch(
+            {
+              # Simplified: only top-level random effect
+              top_level_re <- paste0("(1 | ", random_effects[1], ")")
+              simple_formula <- reformulate(paste(fixed_part, "+", top_level_re), response = feature)
+              required_cols <- c(feature, fixed_effects, random_effects[1])
+              clean_data <- data %>% drop_na(all_of(required_cols))
+
+              model <- lmer(simple_formula, data = clean_data, control = lmerControl(optimizer = "bobyqa"))
+
+              extract_model_results(model, feature, note = "simplified_random_effects")
+            },
+            error = function(e3) {
+              tryCatch(
+                {
+                  fixed_formula <- reformulate(fixed_part, response = feature)
+                  required_cols <- c(feature, fixed_effects)
+                  clean_data <- data %>% drop_na(all_of(required_cols))
+
+                  model <- lm(fixed_formula, data = clean_data)
+
+                  extract_model_results(model, feature, note = "fixed_effects_only")
+                },
+                error = function(e4) {
+                  list(
+                    results = tibble(
+                      effect = "fixed",
+                      term = paste0(fixed_effects[1], "NA"),
+                      estimate = NA_real_,
+                      std.error = NA_real_,
+                      statistic = NA_real_,
+                      df = NA_real_,
+                      p.value = NA_real_,
+                      feature = feature,
+                      note = "model_failed"
+                    ),
+                    model = NULL,
+                    model_type = "failed",
+                    note = "model_failed"
+                  )
+                }
+              )
+            }
+          )
+        }
+      )
+    }
+  )
+}
