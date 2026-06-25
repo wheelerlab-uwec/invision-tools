@@ -28,7 +28,9 @@ rule sleap_track:
         batch_size=BATCH_SIZE
     resources:
         mem_mb=32000,
-        gpus=1
+        # gpus=1,
+        gres="shard:4"
+    threads: 16
     conda: "sleap-1.4.1"
     shell:
         """
