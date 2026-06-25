@@ -1,0 +1,101 @@
+diameter,minmass,score,error
+7,50,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+11,300,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+15,300,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+15,200,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+15,100,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+15,50,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+13,500,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+13,300,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+13,200,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+13,100,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+13,50,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+11,500,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+11,200,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+7,100,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+11,100,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+11,50,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+9,500,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+9,300,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+9,200,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+9,100,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+9,50,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+7,500,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+7,300,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+7,200,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
+15,500,0,"All handlers returned exceptions:
+<class 'pims.pyav_reader.PyAVReaderTimed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.pyav_reader.PyAVReaderIndexed'> errored: 'NoneType' object has no attribute 'open'
+<class 'pims.moviepy_reader.MoviePyReader'> errored: The MoviePyReader requires moviepy to work."
