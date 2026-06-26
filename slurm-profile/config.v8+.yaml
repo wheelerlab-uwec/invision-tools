@@ -20,7 +20,7 @@ set-resources:
     sleap_track:
         partition: GPU
         mem_mb: 32000
-        gpus: 1
+        # gpus: 1
     sleap_convert:
         partition: week
         mem_mb: 8000
