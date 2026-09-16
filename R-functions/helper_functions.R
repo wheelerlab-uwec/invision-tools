@@ -99,6 +99,14 @@ calculate_track_features <- function(
     1 - r
   }
 
+  # Successive differences between angles, wrapped to (-pi, pi]. Required
+  # wherever headings are differenced: atan2() output jumps by ~2*pi whenever a
+  # track's heading crosses +/-pi, and a raw diff() reads that jump as a turn.
+  angle_diff <- function(angles) {
+    d <- diff(angles)
+    atan2(sin(d), cos(d))
+  }
+
   calc_features <- function(track_df) {
     track_df <- track_df %>%
       arrange(frame) %>%
@@ -122,7 +130,7 @@ calculate_track_features <- function(
 
         # Angular measures
         heading = atan2(dy, dx),
-        angular_velocity = c(NA, diff(heading) / dt[-length(dt)]),
+        angular_velocity = c(NA, angle_diff(heading) / dt[-length(dt)]),
         angular_acceleration = c(
           NA,
           diff(angular_velocity, na.rm = TRUE) /
@@ -131,7 +139,7 @@ calculate_track_features <- function(
 
         # Curvature (rate of change of heading with respect to distance)
         ds = sqrt(dx_mm^2 + dy_mm^2),
-        curvature = ifelse(ds > 0, abs(c(NA, diff(heading))) / ds, 0),
+        curvature = ifelse(ds > 0, abs(c(NA, angle_diff(heading))) / ds, 0),
 
         # Distance from starting point
         dist_from_start = sqrt((x - x[1])^2 + (y - y[1])^2) * pixel_to_mm
@@ -169,7 +177,7 @@ calculate_track_features <- function(
     hull_area <- {
       if (nrow(track_df) >= 3) {
         ch <- grDevices::chull(track_df$x, track_df$y)
-        sum(abs(
+        abs(sum(
           track_df$x[ch] *
             c(track_df$y[ch[-1]], track_df$y[ch[1]]) -
             track_df$y[ch] * c(track_df$x[ch[-1]], track_df$x[ch[1]])
@@ -333,6 +341,14 @@ calculate_track_features_parallel <- function(
     1 - r
   }
 
+  # Successive differences between angles, wrapped to (-pi, pi]. Required
+  # wherever headings are differenced: atan2() output jumps by ~2*pi whenever a
+  # track's heading crosses +/-pi, and a raw diff() reads that jump as a turn.
+  angle_diff <- function(angles) {
+    d <- diff(angles)
+    atan2(sin(d), cos(d))
+  }
+
   calc_features <- function(track_df) {
     track_df <- track_df %>%
       arrange(frame) %>%
@@ -356,7 +372,7 @@ calculate_track_features_parallel <- function(
 
         # Angular measures
         heading = atan2(dy, dx),
-        angular_velocity = c(NA, diff(heading) / dt[-length(dt)]),
+        angular_velocity = c(NA, angle_diff(heading) / dt[-length(dt)]),
         angular_acceleration = c(
           NA,
           diff(angular_velocity, na.rm = TRUE) /
@@ -365,7 +381,7 @@ calculate_track_features_parallel <- function(
 
         # Curvature
         ds = sqrt(dx_mm^2 + dy_mm^2),
-        curvature = ifelse(ds > 0, abs(c(NA, diff(heading))) / ds, 0),
+        curvature = ifelse(ds > 0, abs(c(NA, angle_diff(heading))) / ds, 0),
 
         # Distance from starting point
         dist_from_start = sqrt((x - x[1])^2 + (y - y[1])^2) * pixel_to_mm
@@ -403,7 +419,7 @@ calculate_track_features_parallel <- function(
     hull_area <- {
       if (nrow(track_df) >= 3) {
         ch <- grDevices::chull(track_df$x, track_df$y)
-        sum(abs(
+        abs(sum(
           track_df$x[ch] *
             c(track_df$y[ch[-1]], track_df$y[ch[1]]) -
             track_df$y[ch] * c(track_df$x[ch[-1]], track_df$x[ch[1]])
