@@ -318,8 +318,7 @@ calculate_track_features_parallel <- function(
   n_cores = parallel::detectCores() - 1,
   chunk_size = 500
 ) {
-  # Set up parallel processing
-  plan(multisession, workers = n_cores)
+  n_cores <- max(1L, as.integer(n_cores))
 
   feature_quantiles <- function(x, prefix, probs = c(0.1, 0.5, 0.9)) {
     q <- quantile(x, probs = probs, na.rm = TRUE)
@@ -553,10 +552,11 @@ calculate_track_features_parallel <- function(
   n_chunks <- ceiling(n_rows / chunk_size)
 
   cat(sprintf(
-    "Processing %d tracks in %d chunks of ~%d tracks each...\n",
+    "Processing %d tracks in %d chunks of ~%d tracks each on %d worker(s)...\n",
     n_rows,
     n_chunks,
-    chunk_size
+    chunk_size,
+    n_cores
   ))
 
   # Split into chunks
@@ -571,22 +571,39 @@ calculate_track_features_parallel <- function(
       unnest(features)
   }
 
-  # Process chunks with real progress tracking
-  results <- list()
-  pb <- txtProgressBar(min = 0, max = length(chunks), style = 3)
+  # Workers need calc_features and the small helpers it calls, but not this
+  # function's environment: a closure carries its enclosing environment, which
+  # here holds nested_tracks_df and every chunk, and would be copied to every
+  # worker. Rehome the functions in a minimal environment instead.
+  worker_env <- new.env(parent = globalenv())
+  worker_env$fps <- fps
+  worker_env$pixel_to_mm <- pixel_to_mm
+  for (fn in c("feature_quantiles", "circular_mean", "circular_var",
+               "angle_diff", "calc_features", "process_chunk")) {
+    f <- get(fn)
+    environment(f) <- worker_env
+    assign(fn, f, envir = worker_env)
+  }
+  process_chunk <- worker_env$process_chunk
 
-  for (i in seq_along(chunks)) {
-    results[[i]] <- process_chunk(chunks[[i]])
-    setTxtProgressBar(pb, i)
+  if (n_cores == 1L || length(chunks) == 1L) {
+    results <- lapply(chunks, process_chunk)
+  } else {
+    # Restore whatever plan the caller had, rather than forcing sequential.
+    old_plan <- plan(multisession, workers = n_cores)
+    on.exit(plan(old_plan), add = TRUE)
+    results <- furrr::future_map(
+      chunks,
+      process_chunk,
+      .options = furrr::furrr_options(
+        packages = c("dplyr", "tidyr", "purrr", "tibble"),
+        seed = NULL
+      )
+    )
   }
 
-  close(pb)
-
-  # Combine results
+  # Combine results; future_map returns them in input order
   result <- bind_rows(results)
-
-  # Clean up parallel backend
-  plan(sequential)
 
   return(result)
 }
