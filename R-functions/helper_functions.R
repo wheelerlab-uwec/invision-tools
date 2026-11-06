@@ -234,14 +234,22 @@ calculate_track_features <- function(
       NA_real_
     }
 
-    heading_autocorr <- if (length(clean_df$heading) > 1) {
-      cor(
-        clean_df$heading[-length(clean_df$heading)],
-        clean_df$heading[-1],
-        use = "complete.obs"
-      )
-    } else {
-      NA_real_
+    # Lag-1 heading autocorrelation as a circular correlation (Jammalamadaka &
+    # SenGupta 2001). Pearson on raw atan2() headings is wrong: a heading that
+    # crosses +/-pi reads as a ~2*pi jump, so straight paths pointing roughly
+    # west looked decorrelated. Range [-1, 1], NA when undefined.
+    heading_autocorr <- {
+      h <- clean_df$heading[!is.na(clean_df$heading)]
+      if (length(h) > 2) {
+        a <- h[-length(h)]
+        b <- h[-1]
+        sa <- sin(a - atan2(mean(sin(a)), mean(cos(a))))
+        sb <- sin(b - atan2(mean(sin(b)), mean(cos(b))))
+        den <- sqrt(sum(sa^2) * sum(sb^2))
+        if (den > 0) sum(sa * sb) / den else NA_real_
+      } else {
+        NA_real_
+      }
     }
 
     tibble(
@@ -475,14 +483,22 @@ calculate_track_features_parallel <- function(
       NA_real_
     }
 
-    heading_autocorr <- if (length(clean_df$heading) > 1) {
-      cor(
-        clean_df$heading[-length(clean_df$heading)],
-        clean_df$heading[-1],
-        use = "complete.obs"
-      )
-    } else {
-      NA_real_
+    # Lag-1 heading autocorrelation as a circular correlation (Jammalamadaka &
+    # SenGupta 2001). Pearson on raw atan2() headings is wrong: a heading that
+    # crosses +/-pi reads as a ~2*pi jump, so straight paths pointing roughly
+    # west looked decorrelated. Range [-1, 1], NA when undefined.
+    heading_autocorr <- {
+      h <- clean_df$heading[!is.na(clean_df$heading)]
+      if (length(h) > 2) {
+        a <- h[-length(h)]
+        b <- h[-1]
+        sa <- sin(a - atan2(mean(sin(a)), mean(cos(a))))
+        sb <- sin(b - atan2(mean(sin(b)), mean(cos(b))))
+        den <- sqrt(sum(sa^2) * sum(sb^2))
+        if (den > 0) sum(sa * sb) / den else NA_real_
+      } else {
+        NA_real_
+      }
     }
 
     tibble(
